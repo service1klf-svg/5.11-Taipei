@@ -74,10 +74,9 @@ button { cursor: pointer; font-family: var(--font-body); border: none; }
   display: flex;
   align-items: center;
   gap: 24px;
-  position: relative;
 }
 
-/* 需求 2：Logo 圖片樣式控制 */
+/* Logo 圖片樣式控制 */
 .site-logo {
   display: flex;
   align-items: center;
@@ -86,35 +85,10 @@ button { cursor: pointer; font-family: var(--font-body); border: none; }
 }
 .site-logo:hover { opacity: 0.85; }
 .logo-image {
-  height: 32px; /* 限制高度，使其完美嵌入導覽列 */
+  height: 32px; /* 限制高度使其完美嵌入導覽列 */
   width: auto;
   object-fit: contain;
 }
-
-/* 需求 1：頂部右側社群按鈕排版（靠右側） */
-.header-social-links {
-  margin-left: auto; /* 關鍵：強制推至最右側 */
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-.social-icon-btn {
-  font-size: 20px;
-  color: var(--color-text-muted);
-  transition: color 0.2s, transform 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.05);
-}
-.social-icon-btn:hover {
-  transform: translateY(-2px);
-}
-.social-icon-btn.fb:hover { color: #1877F2; } /* 經典 FB 藍 */
-.social-icon-btn.ig:hover { color: #E1306C; } /* 經典 IG 粉紅 */
 
 /* Breadcrumb 麵包屑 */
 .breadcrumb {
@@ -328,7 +302,7 @@ button { cursor: pointer; font-family: var(--font-body); border: none; }
 }
 .sub-card-count {
   font-size: 11px;
-  color: var(--text-dim);
+  color: var(--color-text-dim);
   background: var(--color-bg3);
   padding: 2px 8px;
   border-radius: 20px;
@@ -375,17 +349,6 @@ button { cursor: pointer; font-family: var(--font-body); border: none; }
   transition: transform 0.35s ease;
 }
 .product-card:hover .product-card-img-wrap img { transform: scale(1.06); }
-
-/* 圖片佔位符 */
-.product-card-img-wrap .img-placeholder {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 48px;
-  opacity: 0.2;
-}
 
 /* 商品資訊 */
 .product-card-info {
@@ -540,7 +503,7 @@ button { cursor: pointer; font-family: var(--font-body); border: none; }
 }
 .color-btn.active {
   border-color: var(--color-orange);
-  background: rgba(240, 74, 35, 0.1); /* 配合新橘色的透明背景 */
+  background: rgba(240, 74, 35, 0.1);
   color: var(--color-orange);
 }
 .color-btn-swatch {
@@ -565,7 +528,7 @@ button { cursor: pointer; font-family: var(--font-body); border: none; }
   white-space: pre-line;
 }
 
-/* CTA 按鈕 (詳情頁私訊按鈕顏色同步更新) */
+/* CTA 按鈕 */
 .btn-fb {
   display: flex;
   align-items: center;
@@ -624,50 +587,82 @@ button { cursor: pointer; font-family: var(--font-body); border: none; }
   text-transform: uppercase;
 }
 
-/* ─── Footer ────────────────────────────────────────────────── */
+/* ─── Footer 頁尾（選項 A 高級對稱進階版） ──────────────────────── */
 .site-footer {
-  background: rgba(0,0,0,0.6);
+  background: rgba(10, 10, 11, 0.98);
   border-top: 1px solid var(--color-border);
-  padding: 40px 20px;
-  text-align: center;
+  padding: 48px 20px;
   margin-top: auto;
 }
 .footer-inner {
-  max-width: 600px;
+  max-width: var(--max-w);
   margin: 0 auto;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
+  justify-content: space-between; /* 關鍵：左右分開 */
+  align-items: flex-start;
+  gap: 40px;
 }
 
-/* 需求 3：修改名稱與色碼 #F04A23 */
+/* 頁尾左側排版 */
+.footer-left {
+  flex: 1;
+  text-align: left;
+}
+/* 需求 3 & 需求 8：店名放大至 26px，色碼 #F04A23 */
 .footer-brand {
   font-family: var(--font-heading);
-  font-size: 22px;
+  font-size: 26px; 
   font-weight: 800;
-  letter-spacing: 2px;
-  color: #F04A23; 
+  letter-spacing: 1px;
+  color: #F04A23;
+  margin-bottom: 12px;
 }
-
-/* 需求 4：文字色碼改為 #FFFFFF */
+/* 需求 4：提示文字色碼為 #FFFFFF */
 .footer-notice {
   font-size: 13px;
-  color: #FFFFFF; 
+  color: #FFFFFF;
   line-height: 1.6;
-  font-weight: 400;
+  opacity: 0.8;
 }
 
-/* 需求 5：店家資訊文字樣式 */
-.footer-store-info {
-  font-size: 14px;
-  color: #FFFFFF; 
-  line-height: 1.8;
-  letter-spacing: 0.5px;
-  margin-top: 6px;
+/* 頁尾右側排版：由上至下對齊 */
+.footer-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end; /* 右對齊 */
+  text-align: right;
+  gap: 12px;
 }
-.footer-store-info p {
-  margin: 4px 0;
+/* 需求 5 & 需求 8：地址與電話改為 16px，色碼 #FFFFFF */
+.store-address, .store-phone {
+  font-size: 16px; 
+  color: #FFFFFF;
+  letter-spacing: 0.5px;
+  line-height: 1.4;
+}
+
+/* 頁尾右側最下方的社群圖標列 */
+.footer-social-links {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+.social-icon-btn {
+  font-size: 16px;
+  color: #FFFFFF; /* 白色質感圓形圖標 */
+  transition: transform 0.2s, background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+}
+.social-icon-btn:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 /* ─── Lightbox 燈箱 ─────────────────────────────────────────── */
@@ -746,12 +741,25 @@ button { cursor: pointer; font-family: var(--font-body); border: none; }
 }
 .fade-in { animation: fadeIn 0.3s ease both; }
 
-/* ─── RWD 響應式 ─────────────────────────────────────────────── */
+/* ─── RWD 響應式手機版排版優化 ──────────────────────────────────── */
 @media (max-width: 768px) {
   :root { --header-h: 56px; }
   #app { padding: 20px 12px 40px; }
 
-  .logo-image { height: 26px; } /* 手機版略為縮小 Logo 圖片 */
+  .logo-image { height: 26px; } 
+
+  /* 手機版自動將左右並排轉為置中好閱讀的直列排版 */
+  .footer-inner {
+    flex-direction: column;
+    text-align: center;
+    align-items: center;
+    gap: 24px;
+    padding: 12px 0;
+  }
+  .footer-left, .footer-right {
+    text-align: center;
+    align-items: center;
+  }
 
   .category-grid { grid-template-columns: 1fr 1fr; }
   .cat-card { padding: 22px 16px; }
@@ -772,7 +780,6 @@ button { cursor: pointer; font-family: var(--font-body); border: none; }
   .product-grid  { grid-template-columns: 1fr 1fr; }
 
   .breadcrumb { display: none; }
-  .header-social-links { gap: 10px; }
 }
 
 /* ─── 工具 class ──────────────────────────────────────────────── */
