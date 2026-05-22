@@ -92,13 +92,6 @@ button { cursor: pointer; font-family: var(--font-body); border: none; }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.error-box {
-  background: rgba(200, 40, 40, 0.1); border: 1px solid rgba(200, 40, 40, 0.3);
-  border-radius: var(--radius-lg); padding: 24px; text-align: center; color: #e57373;
-}
-.error-box h3 { font-size: 18px; margin-bottom: 8px; }
-.error-box p  { font-size: 14px; color: var(--color-text-muted); }
-
 /* ─── 頁面標題與卡片 ────────────────────────────────────────── */
 .page-title {
   font-family: var(--font-heading); font-size: clamp(28px, 5vw, 48px);
@@ -131,7 +124,7 @@ button { cursor: pointer; font-family: var(--font-body); border: none; }
 .sub-card { display: flex; align-items: center; justify-content: space-between; background: var(--color-bg2); padding: 22px 24px; cursor: pointer; text-decoration: none; transition: background 0.18s, padding-left 0.18s; border-bottom: 2px solid transparent; }
 .sub-card:hover { background: var(--color-bg3); padding-left: 30px; border-bottom-color: var(--color-orange); }
 .sub-card-name { font-family: var(--font-heading); font-size: 20px; font-weight: 700; letter-spacing: 1px; }
-.sub-card-count { font-size: 11px; color: var(--text-dim); background: var(--color-bg3); padding: 2px 8px; border-radius: 20px; }
+.sub-card-count { font-size: 11px; color: var(--color-text-dim); background: var(--color-bg3); padding: 2px 8px; border-radius: 20px; }
 
 .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 2px; margin-top: 8px; }
 .product-card { display: block; background: var(--color-bg2); cursor: pointer; text-decoration: none; transition: background 0.2s, transform 0.2s; overflow: hidden; border: 1px solid transparent; }
@@ -164,50 +157,47 @@ button { cursor: pointer; font-family: var(--font-body); border: none; }
 .color-btn:hover { border-color: var(--color-text-muted); background: var(--color-bg3); }
 .color-btn.active { border-color: var(--color-orange); background: rgba(240, 74, 35, 0.1); color: var(--color-orange); }
 .color-btn-swatch { width: 16px; height: 16px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.15); flex-shrink: 0; }
-.material-text { font-size: 14px; color: var(--color-text-muted); line-height: 1.7; margin-bottom: 8px; }
-.description-text { font-size: 14px; color: var(--color-text-muted); line-height: 1.8; white-space: pre-line; }
 .btn-fb { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 16px 24px; background: var(--color-orange); color: white; font-family: var(--font-heading); font-size: 18px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; text-decoration: none; transition: background 0.2s, transform 0.15s; border-radius: var(--radius); margin-top: 24px; }
 .btn-fb:hover { background: var(--color-orange-dk); transform: translateY(-2px); }
 
 .back-btn { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-heading); font-size: 13px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--color-text-muted); cursor: pointer; padding: 8px 0; transition: color 0.15s; background: none; border: none; margin-bottom: 24px; }
 .back-btn:hover { color: var(--color-orange); }
 .back-btn::before { content: '←'; }
-.empty-state { text-align: center; padding: 80px 20px; color: var(--color-text-dim); }
-.empty-state p { font-family: var(--font-heading); font-size: 16px; letter-spacing: 2px; text-transform: uppercase; }
 
 
-/* ─── 完美還原附圖：分層與垂直線網格排版 ───────────────────────────── */
+/* ─── 🛠️ 完美還原：精緻縮小卡片、店名置中、右側左對齊 ────────────────── */
 .site-footer {
   background: transparent;
   margin-top: auto;
   width: 100%;
 }
 
-/* 1. 上層：灰色背景資訊層 */
+/* 1. 上層：灰色背景區（縮減上下襯距） */
 .footer-info-layer {
-  background: #242526; /* 精確設定質感灰底 */
+  background: #242526; 
   border-top: 1px solid var(--color-border);
-  padding: 40px 20px;
+  padding: 24px 20px; /* 縮小上下寬度，讓灰底變窄 */
 }
 
-/* 利用 Flex 對稱切分左右欄位與居中垂直線 */
-.footer-inner-split {
-  max-width: var(--max-w);
+/* 核心中央資訊卡片：限制最大寬度，使其稍微靠中間凝聚 */
+.footer-center-card {
+  max-width: 860px; /* 縮小寬度，讓左右向中間集中 */
   margin: 0 auto;
   display: flex;
-  align-items: center;  /* 垂直居中對齊 */
+  align-items: center; /* 關鍵：讓左側店名完美對齊右側內容的中心點 */
   justify-content: center;
-  gap: 32px;
+  gap: 28px;
 }
 
-/* 左側：店名外框區 */
-.footer-left-box {
+/* 左側店名盒：確保文字靠右貼緊分隔線 */
+.footer-left-brand-box {
   flex: 1;
   display: flex;
-  justify-content: flex-end; /* 將店名向右邊的分隔線靠攏 */
-  padding-right: 16px;
+  justify-content: flex-end;
+  align-items: center;
 }
-/* 店名格式 (26px, 亮橘色) */
+
+/* 橘色大店名格式 */
 .footer-brand {
   font-family: var(--font-heading);
   font-size: 26px; 
@@ -217,60 +207,62 @@ button { cursor: pointer; font-family: var(--font-body); border: none; }
   white-space: nowrap;
 }
 
-/* 完美還原附圖：中間那條垂直分隔線 */
-.footer-vertical-line {
+/* 中間那條優雅的垂直分隔線 */
+.footer-split-line {
   width: 2px;
-  height: 90px; /* 控制實體分隔線的高度 */
-  background: #5a5c5f; /* 灰中帶質感的隔線色 */
+  height: 64px; /* 調小高度以適應縮窄的灰底 */
+  background: #5a5c5f;
   flex-shrink: 0;
 }
 
-/* 右側：詳細資訊欄位區 */
-.footer-right-box {
+/* 右側資訊盒：全面「向左對齊」 */
+.footer-right-info-box {
   flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: flex-start; /* 讓資訊從垂直線旁向左對齊展開 */
-  gap: 8px;
-  padding-left: 16px;
+  align-items: flex-start; /* 核心：所有內容一律向左靠齊 */
+  gap: 6px;
 }
-/* 右側字體內容調整 (16px, 白色) */
+
+/* 右側文字樣式 */
 .store-info {
-  font-size: 16px; 
+  font-size: 15px; 
   color: #FFFFFF;
   letter-spacing: 0.5px;
   line-height: 1.4;
+  white-space: nowrap;
 }
 
-/* 社群連結小圖標列 */
-.footer-social-links {
+/* 社群圖標列：同樣向左對齊 */
+.footer-social-row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-top: 4px;
+  gap: 10px;
+  margin-top: 2px;
 }
-.social-icon-btn {
-  font-size: 14px; color: #FFFFFF; display: flex; align-items: center; justify-content: center;
-  width: 32px; height: 32px; border-radius: 50%; background: rgba(255, 255, 255, 0.08); transition: background 0.2s, transform 0.2s;
+.social-circle-btn {
+  font-size: 13px; color: #FFFFFF; display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 50%; background: rgba(255, 255, 255, 0.1); transition: background 0.2s;
 }
-.social-icon-btn:hover { transform: translateY(-2px); background: rgba(255, 255, 255, 0.2); }
+.social-circle-btn:hover { background: rgba(255, 255, 255, 0.25); }
 
 
 /* 2. 下層：全滿版黑色免責聲明區 */
 .footer-disclaimer-layer {
-  background: #000000; /* 全黑底 */
+  background: #000000; 
   padding: 16px 20px;
   text-align: center;
   width: 100%;
 }
-/* 下方告示內容：純白字體加粗 */
+
+/* 核心：放大、加粗底部的免責字體 */
 .disclaimer-text {
   max-width: var(--max-w);
   margin: 0 auto;
-  font-size: 13px;
-  font-weight: 700; /* 粗體字 */
-  color: #FFFFFF;  /* 白色字 */
-  line-height: 1.5;
+  font-size: 16px;    /* 放大字體 */
+  font-weight: 700;   /* 粗體白字 */
+  color: #FFFFFF;  
+  line-height: 1.4;
   letter-spacing: 0.5px;
 }
 
@@ -292,26 +284,26 @@ button { cursor: pointer; font-family: var(--font-body); border: none; }
 .fade-in { animation: fadeIn 0.3s ease both; }
 
 
-/* ─── RWD 手機響應式最佳化 ───────────────────────────────────────── */
+/* ─── RWD 手機響應式 ─────────────────────────────────────── */
 @media (max-width: 768px) {
   :root { --header-h: 56px; }
   #app { padding: 20px 12px 40px; }
   .logo-image { height: 26px; } 
 
-  /* 當螢幕縮小到手機版時，自動切換成直式置中，避免擠壓變形 */
-  .footer-inner-split {
+  /* 手機版空間不足時自動轉直列並置中 */
+  .footer-center-card {
     flex-direction: column;
     text-align: center;
-    gap: 16px;
+    gap: 14px;
   }
-  .footer-left-box, .footer-right-box {
-    text-align: center;
-    align-items: center;
+  .footer-left-brand-box, .footer-right-info-box {
     justify-content: center;
-    padding: 0;
+    align-items: center;
+    text-align: center;
   }
-  /* 手機版隱藏中間的垂直線 */
-  .footer-vertical-line { display: none; }
+  .footer-split-line { display: none; } /* 手機版拿掉垂直線 */
+  .footer-social-row { justify-content: center; }
+  .disclaimer-text { font-size: 14px; }
 
   .category-grid { grid-template-columns: 1fr 1fr; }
   .cat-card { padding: 22px 16px; }
