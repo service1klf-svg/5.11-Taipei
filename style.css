@@ -2,20 +2,19 @@
    ║          5.11 台灣服飾型錄 — 樣式表 (style.css)               ║
    ╚══════════════════════════════════════════════════════════════╝ */
 
-/* ─── CSS 變數 ───────────────────────────────────────────────── */
 :root {
-  --color-bg:         #111213;   /* 主背景：深黑 */
-  --color-bg2:        #1a1b1c;   /* 卡片背景 */
-  --color-bg3:        #242526;   /* 懸停背景 */
-  --color-border:     #2e2f31;   /* 邊框 */
+  --color-bg:         #111213;   
+  --color-bg2:        #1a1b1c;   
+  --color-bg3:        #242526;   
+  --color-border:     #2e2f31;   
   
-  --color-orange:     #F04A23;   /* 專屬亮橘 */
+  --color-orange:     #F04A23;   
   --color-orange-dk:  #d13b16;   
   --color-orange-lt:  #ff6442;   
   
-  --color-text:       #e8e9ea;   /* 主文字 */
-  --color-text-muted: #8a8c8f;   /* 次要文字 */
-  --color-text-dim:   #5a5c5f;   /* 更淡文字 */
+  --color-text:       #e8e9ea;   
+  --color-text-muted: #8a8c8f;   
+  --color-text-dim:   #5a5c5f;   
   --color-danger:     #c0392b;   
   --color-success:    #27ae60;   
 
@@ -70,17 +69,9 @@ button { cursor: pointer; font-family: var(--font-body); border: none; }
 .site-logo:hover { opacity: 0.85; }
 .logo-image { height: 32px; width: auto; object-fit: contain; }
 
-/* Breadcrumb 麵包屑 */
 .breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  font-family: var(--font-heading);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  overflow: hidden;
+  display: flex; align-items: center; gap: 0; font-family: var(--font-heading);
+  font-size: 13px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; overflow: hidden;
 }
 .breadcrumb a { color: var(--color-text-muted); transition: color 0.2s; white-space: nowrap; }
 .breadcrumb a:hover { color: var(--color-orange); }
@@ -108,7 +99,7 @@ button { cursor: pointer; font-family: var(--font-body); border: none; }
 .error-box h3 { font-size: 18px; margin-bottom: 8px; }
 .error-box p  { font-size: 14px; color: var(--color-text-muted); }
 
-/* ─── 頁面標題 ──────────────────────────────────────────────── */
+/* ─── 頁面標題與卡片 ────────────────────────────────────────── */
 .page-title {
   font-family: var(--font-heading); font-size: clamp(28px, 5vw, 48px);
   font-weight: 800; letter-spacing: 2px; text-transform: uppercase; line-height: 1; margin-bottom: 8px;
@@ -116,7 +107,6 @@ button { cursor: pointer; font-family: var(--font-body); border: none; }
 .page-title span { color: var(--color-orange); }
 .page-subtitle { font-size: 13px; color: var(--color-text-muted); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 32px; }
 
-/* ─── 首頁大分類 ────────────────────────────────────────────── */
 .home-header { margin-bottom: 40px; border-left: 4px solid var(--color-orange); padding-left: 16px; }
 .home-header h1 { font-family: var(--font-heading); font-size: clamp(36px, 6vw, 64px); font-weight: 800; letter-spacing: 3px; text-transform: uppercase; line-height: 1; }
 .home-header p { font-size: 13px; color: var(--color-text-muted); letter-spacing: 4px; text-transform: uppercase; margin-top: 6px; }
@@ -137,14 +127,12 @@ button { cursor: pointer; font-family: var(--font-body); border: none; }
 .cat-card-arrow { position: absolute; right: 20px; top: 50%; transform: translateY(-50%); font-size: 24px; color: var(--color-text-dim); transition: color 0.2s, right 0.2s; }
 .cat-card:hover .cat-card-arrow { color: var(--color-orange); right: 14px; }
 
-/* ─── 小分類頁面 ────────────────────────────────────────────── */
 .sub-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 2px; margin-top: 8px; }
 .sub-card { display: flex; align-items: center; justify-content: space-between; background: var(--color-bg2); padding: 22px 24px; cursor: pointer; text-decoration: none; transition: background 0.18s, padding-left 0.18s; border-bottom: 2px solid transparent; }
 .sub-card:hover { background: var(--color-bg3); padding-left: 30px; border-bottom-color: var(--color-orange); }
 .sub-card-name { font-family: var(--font-heading); font-size: 20px; font-weight: 700; letter-spacing: 1px; }
-.sub-card-count { font-size: 11px; color: var(--color-text-dim); background: var(--color-bg3); padding: 2px 8px; border-radius: 20px; }
+.sub-card-count { font-size: 11px; color: var(--text-dim); background: var(--color-bg3); padding: 2px 8px; border-radius: 20px; }
 
-/* ─── 商品列表 ──────────────────────────────────────────────── */
 .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 2px; margin-top: 8px; }
 .product-card { display: block; background: var(--color-bg2); cursor: pointer; text-decoration: none; transition: background 0.2s, transform 0.2s; overflow: hidden; border: 1px solid transparent; }
 .product-card:hover { background: var(--color-bg3); border-color: var(--color-border); transform: translateY(-2px); box-shadow: var(--shadow); }
@@ -187,46 +175,66 @@ button { cursor: pointer; font-family: var(--font-body); border: none; }
 .empty-state { text-align: center; padding: 80px 20px; color: var(--color-text-dim); }
 .empty-state p { font-family: var(--font-heading); font-size: 16px; letter-spacing: 2px; text-transform: uppercase; }
 
-/* ─── 全新分層 Footer 頁尾樣式（對應加工截圖設計） ───────────────── */
+
+/* ─── 完美還原附圖：分層與垂直線網格排版 ───────────────────────────── */
 .site-footer {
-  background: transparent; /* 讓內層完全掌控背景色 */
+  background: transparent;
   margin-top: auto;
   width: 100%;
 }
 
-/* 1. 上層資訊層：質感深灰底 */
+/* 1. 上層：灰色背景資訊層 */
 .footer-info-layer {
-  background: #242526; /* 精緻的深灰底層 */
+  background: #242526; /* 精確設定質感灰底 */
   border-top: 1px solid var(--color-border);
   padding: 40px 20px;
 }
-.footer-inner {
+
+/* 利用 Flex 對稱切分左右欄位與居中垂直線 */
+.footer-inner-split {
   max-width: var(--max-w);
   margin: 0 auto;
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 40px;
+  align-items: center;  /* 垂直居中對齊 */
+  justify-content: center;
+  gap: 32px;
 }
-.footer-left { flex: 1; text-align: left; }
 
-/* 左側店名：放大至 26px，經典亮橘色 */
+/* 左側：店名外框區 */
+.footer-left-box {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end; /* 將店名向右邊的分隔線靠攏 */
+  padding-right: 16px;
+}
+/* 店名格式 (26px, 亮橘色) */
 .footer-brand {
   font-family: var(--font-heading);
   font-size: 26px; 
   font-weight: 800;
   letter-spacing: 1px;
   color: var(--color-orange);
+  white-space: nowrap;
 }
 
-/* 右側資訊：由上至下對齊，大小 16px，純白文字 */
-.footer-right {
+/* 完美還原附圖：中間那條垂直分隔線 */
+.footer-vertical-line {
+  width: 2px;
+  height: 90px; /* 控制實體分隔線的高度 */
+  background: #5a5c5f; /* 灰中帶質感的隔線色 */
+  flex-shrink: 0;
+}
+
+/* 右側：詳細資訊欄位區 */
+.footer-right-box {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: flex-end; /* 靠右對齊 */
-  text-align: right;
-  gap: 10px;
+  align-items: flex-start; /* 讓資訊從垂直線旁向左對齊展開 */
+  gap: 8px;
+  padding-left: 16px;
 }
+/* 右側字體內容調整 (16px, 白色) */
 .store-info {
   font-size: 16px; 
   color: #FFFFFF;
@@ -234,8 +242,13 @@ button { cursor: pointer; font-family: var(--font-body); border: none; }
   line-height: 1.4;
 }
 
-/* 社群小圖標 */
-.footer-social-links { display: flex; align-items: center; gap: 12px; margin-top: 4px; }
+/* 社群連結小圖標列 */
+.footer-social-links {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+}
 .social-icon-btn {
   font-size: 14px; color: #FFFFFF; display: flex; align-items: center; justify-content: center;
   width: 32px; height: 32px; border-radius: 50%; background: rgba(255, 255, 255, 0.08); transition: background 0.2s, transform 0.2s;
@@ -243,22 +256,24 @@ button { cursor: pointer; font-family: var(--font-body); border: none; }
 .social-icon-btn:hover { transform: translateY(-2px); background: rgba(255, 255, 255, 0.2); }
 
 
-/* 2. 下層聲明層：粗體黑底白字 */
+/* 2. 下層：全滿版黑色免責聲明區 */
 .footer-disclaimer-layer {
-  background: #000000; /* 極致全黑背景 */
+  background: #000000; /* 全黑底 */
   padding: 16px 20px;
   text-align: center;
   width: 100%;
 }
+/* 下方告示內容：純白字體加粗 */
 .disclaimer-text {
   max-width: var(--max-w);
   margin: 0 auto;
   font-size: 13px;
   font-weight: 700; /* 粗體字 */
-  color: #FFFFFF;  /* 純白字 */
+  color: #FFFFFF;  /* 白色字 */
   line-height: 1.5;
   letter-spacing: 0.5px;
 }
+
 
 /* ─── Lightbox 燈箱 ─────────────────────────────────────────── */
 .lightbox-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 200; }
@@ -276,15 +291,27 @@ button { cursor: pointer; font-family: var(--font-body); border: none; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 .fade-in { animation: fadeIn 0.3s ease both; }
 
-/* ─── RWD 手機版最佳化 ────────────────────────────────────────── */
+
+/* ─── RWD 手機響應式最佳化 ───────────────────────────────────────── */
 @media (max-width: 768px) {
   :root { --header-h: 56px; }
   #app { padding: 20px 12px 40px; }
   .logo-image { height: 26px; } 
 
-  /* 手機版轉換為直式置中排版 */
-  .footer-inner { flex-direction: column; text-align: center; align-items: center; gap: 20px; }
-  .footer-left, .footer-right { text-align: center; align-items: center; }
+  /* 當螢幕縮小到手機版時，自動切換成直式置中，避免擠壓變形 */
+  .footer-inner-split {
+    flex-direction: column;
+    text-align: center;
+    gap: 16px;
+  }
+  .footer-left-box, .footer-right-box {
+    text-align: center;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+  /* 手機版隱藏中間的垂直線 */
+  .footer-vertical-line { display: none; }
 
   .category-grid { grid-template-columns: 1fr 1fr; }
   .cat-card { padding: 22px 16px; }
