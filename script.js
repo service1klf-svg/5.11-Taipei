@@ -111,15 +111,24 @@ function groupByModel(products) {
 
 /** 顏色名稱 → CSS 色碼 */
 /**
- * 解析 color 欄位，格式：「黑色|#1a1a1a」
- * 回傳 { name: '黑色', css: '#1a1a1a' }
- * 若無色碼（只有名稱），css 預設為深灰 #4a4a4a
+ * 解析 color 欄位，支援單色與雙色：
+ *   單色：「黑色|#1a1a1a」         → 純色色塊
+ *   雙色：「黑/軍綠|#1a1a1a|#4b5320」 → 斜切雙色色塊
+ *   無色碼：「黑色」               → 預設深灰
+ * 回傳 { name, css }，css 可為純色碼或 linear-gradient(...)
  */
 function parseColor(raw) {
   const str = (raw || '').trim();
   if (str.includes('|')) {
-    const [name, css] = str.split('|').map(s => s.trim());
-    return { name: name || str, css: css || '#4a4a4a' };
+    const parts = str.split('|').map(s => s.trim());
+    const name  = parts[0];
+    const c1    = parts[1] || '#4a4a4a';
+    const c2    = parts[2] || '';
+    // 有第二個色碼 → 斜切漸層
+    const css = c2
+      ? `linear-gradient(135deg, ${c1} 50%, ${c2} 50%)`
+      : c1;
+    return { name, css };
   }
   return { name: str, css: '#4a4a4a' };
 }
