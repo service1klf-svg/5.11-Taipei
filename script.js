@@ -110,19 +110,18 @@ function groupByModel(products) {
 // ═══════════════════════════════════════════════════════════════
 
 /** 顏色名稱 → CSS 色碼 */
-const COLOR_MAP = {
-  '黑':'#1a1a1a','白':'#f0f0f0','深藍':'#1a3a5c','海軍藍':'#1a2f4e',
-  '藍':'#2155a0','navy':'#1a2f4e','灰':'#666','深灰':'#3a3a3a',
-  '淺灰':'#aaa','橘':'#e85d04','棕':'#5a3e28','沙':'#c4a882',
-  '土':'#7a6040','綠':'#2d5a27','深綠':'#1a3a1a','橄欖':'#4f5320',
-  '軍綠':'#4b5320','紅':'#8b1a1a','卡其':'#c4a048','紫':'#5a2d82','黃':'#d4a800',
-};
-function colorToCSS(name) {
-  const lc = (name || '').toLowerCase();
-  for (const [k, v] of Object.entries(COLOR_MAP)) {
-    if (lc.includes(k.toLowerCase())) return v;
+/**
+ * 解析 color 欄位，格式：「黑色|#1a1a1a」
+ * 回傳 { name: '黑色', css: '#1a1a1a' }
+ * 若無色碼（只有名稱），css 預設為深灰 #4a4a4a
+ */
+function parseColor(raw) {
+  const str = (raw || '').trim();
+  if (str.includes('|')) {
+    const [name, css] = str.split('|').map(s => s.trim());
+    return { name: name || str, css: css || '#4a4a4a' };
   }
-  return '#4a4a4a';
+  return { name: str, css: '#4a4a4a' };
 }
 
 /** 防 XSS */
@@ -292,9 +291,9 @@ const App = {
     const cards = grouped.map(p => {
       const imgSrc = p.variants[0]?.imgs[0] || '';
       const dots   = p.variants.filter(v => v.color)
-        .map(v => `<span class="color-dot" style="background:${colorToCSS(v.color)}" title="${esc(v.color)}"></span>`)
+        .map(v => { const c = parseColor(v.color); return `<span class="color-dot" style="background:${c.css}" title="${esc(c.name)}"></span>`; })
         .join('');
-      const colorLabel = p.variants.filter(v => v.color).map(v => esc(v.color)).join(' / ');
+      const colorLabel = p.variants.filter(v => v.color).map(v => esc(parseColor(v.color).name)).join(' / ');
 
       return `
         <a class="product-card fade-in" href="#/product/${encodeURIComponent(p.model)}">
@@ -362,12 +361,14 @@ const App = {
              onclick="App.selectImg('${esc(url)}')"
              onerror="this.style.display='none'" />`).join('');
 
-      const colorBtns = product.variants.map((v, i) => `
-        <button class="color-btn ${i === activeColorIdx ? 'active' : ''}"
+      const colorBtns = product.variants.map((v, i) => {
+        const c = parseColor(v.color);
+        return `<button class="color-btn ${i === activeColorIdx ? 'active' : ''}"
                 onclick="App.selectColor(${i})">
-          <span class="color-btn-swatch" style="background:${colorToCSS(v.color)}"></span>
-          ${esc(v.color || '標準色')}
-        </button>`).join('');
+          <span class="color-btn-swatch" style="background:${c.css}"></span>
+          ${esc(c.name || '標準色')}
+        </button>`;
+      }).join('');
 
       const materialHtml = product.material ? `
         <div class="divider"></div>
