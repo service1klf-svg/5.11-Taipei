@@ -152,11 +152,21 @@ button { cursor: pointer; font-family: var(--font-body); border: none; }
 .product-info-name { font-family: var(--font-heading); font-size: clamp(22px, 4vw, 36px); font-weight: 800; letter-spacing: 1px; line-height: 1.2; margin-bottom: 24px; }
 .divider { height: 1px; background: var(--color-border); margin: 20px 0; }
 .label { font-family: var(--font-heading); font-size: 12px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--color-text-muted); margin-bottom: 8px; }
+
 .color-options { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
 .color-btn { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border: 1px solid var(--color-border); background: var(--color-bg2); color: var(--color-text); font-size: 13px; font-family: var(--font-body); transition: border-color 0.15s, background 0.15s; border-radius: var(--radius); cursor: pointer; }
 .color-btn:hover { border-color: var(--color-text-muted); background: var(--color-bg3); }
 .color-btn.active { border-color: var(--color-orange); background: rgba(240, 74, 35, 0.1); color: var(--color-orange); }
-.color-btn-swatch { width: 16px; height: 16px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.15); flex-shrink: 0; }
+
+/* 🛠️ 自動顯色圓圈：增加一個淡淡的白色外框，確保黑色按鈕上能顯色 */
+.color-btn-swatch { 
+  width: 14px; 
+  height: 14px; 
+  border-radius: 50%; 
+  border: 1px solid rgba(255,255,255,0.2); 
+  flex-shrink: 0; 
+}
+
 .btn-fb { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 16px 24px; background: var(--color-orange); color: white; font-family: var(--font-heading); font-size: 18px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; text-decoration: none; transition: background 0.2s, transform 0.15s; border-radius: var(--radius); margin-top: 24px; }
 .btn-fb:hover { background: var(--color-orange-dk); transform: translateY(-2px); }
 
@@ -164,108 +174,20 @@ button { cursor: pointer; font-family: var(--font-body); border: none; }
 .back-btn:hover { color: var(--color-orange); }
 .back-btn::before { content: '←'; }
 
-
-/* ─── 🛠️ 完美還原：精緻縮小卡片、店名置中、右側左對齊 ────────────────── */
-.site-footer {
-  background: transparent;
-  margin-top: auto;
-  width: 100%;
-}
-
-/* 1. 上層：灰色背景區（縮減上下襯距） */
-.footer-info-layer {
-  background: #242526; 
-  border-top: 1px solid var(--color-border);
-  padding: 24px 20px; /* 縮小上下寬度，讓灰底變窄 */
-}
-
-/* 核心中央資訊卡片：限制最大寬度，使其稍微靠中間凝聚 */
-.footer-center-card {
-  max-width: 860px; /* 縮小寬度，讓左右向中間集中 */
-  margin: 0 auto;
-  display: flex;
-  align-items: center; /* 關鍵：讓左側店名完美對齊右側內容的中心點 */
-  justify-content: center;
-  gap: 28px;
-}
-
-/* 左側店名盒：確保文字靠右貼緊分隔線 */
-.footer-left-brand-box {
-  flex: 1;
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-}
-
-/* 橘色大店名格式 */
-.footer-brand {
-  font-family: var(--font-heading);
-  font-size: 26px; 
-  font-weight: 800;
-  letter-spacing: 1px;
-  color: var(--color-orange);
-  white-space: nowrap;
-}
-
-/* 中間那條優雅的垂直分隔線 */
-.footer-split-line {
-  width: 2px;
-  height: 64px; /* 調小高度以適應縮窄的灰底 */
-  background: #5a5c5f;
-  flex-shrink: 0;
-}
-
-/* 右側資訊盒：全面「向左對齊」 */
-.footer-right-info-box {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start; /* 核心：所有內容一律向左靠齊 */
-  gap: 6px;
-}
-
-/* 右側文字樣式 */
-.store-info {
-  font-size: 15px; 
-  color: #FFFFFF;
-  letter-spacing: 0.5px;
-  line-height: 1.4;
-  white-space: nowrap;
-}
-
-/* 社群圖標列：同樣向左對齊 */
-.footer-social-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 2px;
-}
-.social-circle-btn {
-  font-size: 13px; color: #FFFFFF; display: flex; align-items: center; justify-content: center;
-  width: 28px; height: 28px; border-radius: 50%; background: rgba(255, 255, 255, 0.1); transition: background 0.2s;
-}
+/* ─── 頁尾排版 ──────────────────────────────────────────────── */
+.site-footer { background: transparent; margin-top: auto; width: 100%; }
+.footer-info-layer { background: #242526; border-top: 1px solid var(--color-border); padding: 24px 20px; }
+.footer-center-card { max-width: 860px; margin: 0 auto; display: flex; align-items: center; justify-content: center; gap: 28px; }
+.footer-left-brand-box { flex: 1; display: flex; justify-content: flex-end; align-items: center; }
+.footer-brand { font-family: var(--font-heading); font-size: 26px; font-weight: 800; letter-spacing: 1px; color: var(--color-orange); white-space: nowrap; }
+.footer-split-line { width: 2px; height: 64px; background: #5a5c5f; flex-shrink: 0; }
+.footer-right-info-box { flex: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.store-info { font-size: 15px; color: #FFFFFF; letter-spacing: 0.5px; line-height: 1.4; white-space: nowrap; }
+.footer-social-row { display: flex; align-items: center; gap: 10px; margin-top: 2px; }
+.social-circle-btn { font-size: 13px; color: #FFFFFF; display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: rgba(255, 255, 255, 0.1); transition: background 0.2s; }
 .social-circle-btn:hover { background: rgba(255, 255, 255, 0.25); }
-
-
-/* 2. 下層：全滿版黑色免責聲明區 */
-.footer-disclaimer-layer {
-  background: #000000; 
-  padding: 16px 20px;
-  text-align: center;
-  width: 100%;
-}
-
-/* 核心：放大、加粗底部的免責字體 */
-.disclaimer-text {
-  max-width: var(--max-w);
-  margin: 0 auto;
-  font-size: 16px;    /* 放大字體 */
-  font-weight: 700;   /* 粗體白字 */
-  color: #FFFFFF;  
-  line-height: 1.4;
-  letter-spacing: 0.5px;
-}
-
+.footer-disclaimer-layer { background: #000000; padding: 16px 20px; text-align: center; width: 100%; }
+.disclaimer-text { max-width: var(--max-w); margin: 0 auto; font-size: 16px; font-weight: 700; color: #FFFFFF; line-height: 1.4; letter-spacing: 0.5px; }
 
 /* ─── Lightbox 燈箱 ─────────────────────────────────────────── */
 .lightbox-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 200; }
@@ -283,28 +205,16 @@ button { cursor: pointer; font-family: var(--font-body); border: none; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 .fade-in { animation: fadeIn 0.3s ease both; }
 
-
 /* ─── RWD 手機響應式 ─────────────────────────────────────── */
 @media (max-width: 768px) {
   :root { --header-h: 56px; }
   #app { padding: 20px 12px 40px; }
   .logo-image { height: 26px; } 
-
-  /* 手機版空間不足時自動轉直列並置中 */
-  .footer-center-card {
-    flex-direction: column;
-    text-align: center;
-    gap: 14px;
-  }
-  .footer-left-brand-box, .footer-right-info-box {
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-  }
-  .footer-split-line { display: none; } /* 手機版拿掉垂直線 */
+  .footer-center-card { flex-direction: column; text-align: center; gap: 14px; }
+  .footer-left-brand-box, .footer-right-info-box { justify-content: center; align-items: center; text-align: center; }
+  .footer-split-line { display: none; }
   .footer-social-row { justify-content: center; }
   .disclaimer-text { font-size: 14px; }
-
   .category-grid { grid-template-columns: 1fr 1fr; }
   .cat-card { padding: 22px 16px; }
   .cat-card-name { font-size: 22px; }
