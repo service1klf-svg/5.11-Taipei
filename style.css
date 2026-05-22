@@ -135,8 +135,17 @@ button { cursor: pointer; font-family: var(--font-body); border: none; }
 .product-card-info { padding: 14px 16px 16px; }
 .product-card-model { font-family: var(--font-heading); font-size: 11px; font-weight: 600; letter-spacing: 2px; color: var(--color-orange); text-transform: uppercase; margin-bottom: 4px; }
 .product-card-name { font-size: 14px; font-weight: 500; line-height: 1.4; margin-bottom: 10px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* ✦ 商品列表色塊：白色外框 + 外圈陰影 */
 .color-dots { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
-.color-dot { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.15); flex-shrink: 0; }
+.color-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
+  flex-shrink: 0;
+}
 
 /* ─── 商品詳細頁 ────────────────────────────────────────────── */
 .product-detail { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start; }
@@ -158,13 +167,14 @@ button { cursor: pointer; font-family: var(--font-body); border: none; }
 .color-btn:hover { border-color: var(--color-text-muted); background: var(--color-bg3); }
 .color-btn.active { border-color: var(--color-orange); background: rgba(240, 74, 35, 0.1); color: var(--color-orange); }
 
-/* 🛠️ 自動顯色圓圈：增加一個淡淡的白色外框，確保黑色按鈕上能顯色 */
-.color-btn-swatch { 
-  width: 14px; 
-  height: 14px; 
-  border-radius: 50%; 
-  border: 1px solid rgba(255,255,255,0.2); 
-  flex-shrink: 0; 
+/* ✦ 詳細頁顏色按鈕色塊：白色外框 + 外圈陰影 */
+.color-btn-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
+  flex-shrink: 0;
 }
 
 .btn-fb { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 16px 24px; background: var(--color-orange); color: white; font-family: var(--font-heading); font-size: 18px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; text-decoration: none; transition: background 0.2s, transform 0.15s; border-radius: var(--radius); margin-top: 24px; }
