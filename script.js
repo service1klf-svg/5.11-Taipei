@@ -1,60 +1,85 @@
 /**
  * ╔══════════════════════════════════════════════════════════════╗
  * ║         5.11 台灣服飾型錄 — 主程式 (script.js)              ║
- * ║  讀取 Google Sheet → 渲染頁面 → 處理互動                     ║
  * ╚══════════════════════════════════════════════════════════════╝
  */
 
 // ═══════════════════════════════════════════════════════════════
-//  快取：把抓到的資料存起來，避免重複請求
+//  快取
 // ═══════════════════════════════════════════════════════════════
-let cachedProducts = null;
+let cachedProducts  = null;   // 所有商品原始資料
+let cachedGrouped   = null;   // 依 model 合併後的商品
+let cachedStructure = null;   // 分類結構 { '上衣': ['襯衫','T恤',...], ... }
 
-/**
- * 把 Google Sheets GViz JSON 格式轉成普通陣列
- * Google Sheets 回傳：google.visualization.Query.setResponse({...})
- */
+// ═══════════════════════════════════════════════════════════════
+//  資料讀取
+// ═══════════════════════════════════════════════════════════════
+
+/** 解析 Google Sheets GViz JSON 回傳格式 */
 function parseGViz(raw) {
   const json = JSON.parse(raw.replace(/^[^(]+\(/, '').replace(/\);?\s*$/, ''));
   const cols = json.table.cols.map(c => c.label || c.id);
-  const rows = json.table.rows || [];
-
-  return rows.map(row => {
+  return (json.table.rows || []).map(row => {
     const obj = {};
     cols.forEach((col, i) => {
-      const cell = row.c && row.c[i];
-      obj[col] = (cell && cell.v !== null && cell.v !== undefined)
-        ? String(cell.v).trim()
-        : '';
+      const cell = row.c?.[i];
+      obj[col] = (cell && cell.v != null) ? String(cell.v).trim() : '';
     });
     return obj;
-  }).filter(row => row.model || row.name); // 過濾空列
+  }).filter(r => r.model || r.name);
 }
 
-/**
- * 從 Google Sheet 抓商品資料（有快取就直接用）
- */
+/** 抓商品資料（有快取就直接用） */
 async function loadProducts() {
   if (cachedProducts) return cachedProducts;
-
   const url = `https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(CONFIG.SHEET_PRODUCTS)}`;
   const resp = await fetch(url);
-  if (!resp.ok) throw new Error(`無法讀取工作表（狀態碼 ${resp.status}）`);
-  const text = await resp.text();
-  cachedProducts = parseGViz(text);
+  if (!resp.ok) throw new Error(`無法讀取工作表（HTTP ${resp.status}）`);
+  cachedProducts = parseGViz(await resp.text());
   return cachedProducts;
 }
 
 /**
- * 依 model 把多個顏色的列合併成單一商品物件
- * 回傳：{ model, name, main_category, sub_category, material, description, variants[] }
- * 每個 variant：{ color, imgs[] }
+ * 從原始資料建立分類結構
+ * 回傳：{ '上衣': ['襯衫','T恤',...], '外套': ['外套'], ... }
+ * 順序依照 Sheet 裡第一次出現的順序
  */
-function groupByModel(products) {
-  const map = new Map();
+function buildStructure(products) {
+  if (cachedStructure) return cachedStructure;
+  const structure = {};   // { mainCat: Set(subCats) }
+  const mainOrder = [];   // 大分類出現順序
 
   products.forEach(row => {
-    const model = (row.model || '').trim();
+    const main = row.main_category?.trim();
+    const sub  = row.sub_category?.trim();
+    if (!main) return;
+
+    if (!structure[main]) {
+      structure[main] = [];
+      mainOrder.push(main);
+    }
+    if (sub && !structure[main].includes(sub)) {
+      structure[main].push(sub);
+    }
+  });
+
+  // 依出現順序重組
+  cachedStructure = {};
+  mainOrder.forEach(main => { cachedStructure[main] = structure[main]; });
+  return cachedStructure;
+}
+
+/**
+ * 依 model 合併多個顏色列 → 單一商品物件
+ * { model, name, main_category, sub_category, material, description, variants[] }
+ * variant: { color, imgs[] }
+ */
+function groupByModel(products) {
+  if (cachedGrouped && products === cachedProducts) return cachedGrouped;
+
+  const map = new Map();
+  products.forEach(row => {
+    const model = row.model?.trim();
     if (!model) return;
 
     if (!map.has(model)) {
@@ -68,73 +93,59 @@ function groupByModel(products) {
         variants: []
       });
     }
-
-    // 蒐集圖片 img1～img10
     const imgs = [];
     for (let i = 1; i <= 10; i++) {
-      const url = (row[`img${i}`] || '').trim();
-      if (url) imgs.push(url);
+      const u = row[`img${i}`]?.trim();
+      if (u) imgs.push(u);
     }
-
-    map.get(model).variants.push({
-      color: (row.color || '').trim(),
-      imgs,
-    });
+    map.get(model).variants.push({ color: row.color?.trim() || '', imgs });
   });
 
-  return Array.from(map.values());
+  cachedGrouped = Array.from(map.values());
+  return cachedGrouped;
 }
 
-/**
- * 顏色名稱 → 近似 CSS 色碼（用於顯示色塊）
- */
+// ═══════════════════════════════════════════════════════════════
+//  工具
+// ═══════════════════════════════════════════════════════════════
+
+/** 顏色名稱 → CSS 色碼 */
 const COLOR_MAP = {
-  '黑色': '#111', '黑': '#111', 'black': '#111',
-  '白色': '#f0f0f0', '白': '#f0f0f0', 'white': '#f0f0f0',
-  '深藍': '#1a3a5c', '海軍藍': '#1a2f4e', '藍色': '#2155a0', '藍': '#2155a0', 'navy': '#1a2f4e',
-  '灰色': '#666', '深灰': '#444', '淺灰': '#aaa', '灰': '#666',
-  '橘色': '#e85d04', '橘': '#e85d04',
-  '棕色': '#5a3e28', '棕': '#5a3e28', '沙色': '#c4a882', '土色': '#7a6040',
-  '綠色': '#2d5a27', '深綠': '#1a3a1a', '橄欖': '#4f5320', '軍綠': '#4b5320',
-  '紅色': '#8b1a1a', '紅': '#8b1a1a',
-  '卡其': '#c4a048', '卡其色': '#c4a048',
-  '紫色': '#5a2d82', '紫': '#5a2d82',
-  '黃色': '#d4a800', '黃': '#d4a800',
+  '黑':'#1a1a1a','白':'#f0f0f0','深藍':'#1a3a5c','海軍藍':'#1a2f4e',
+  '藍':'#2155a0','navy':'#1a2f4e','灰':'#666','深灰':'#3a3a3a',
+  '淺灰':'#aaa','橘':'#e85d04','棕':'#5a3e28','沙':'#c4a882',
+  '土':'#7a6040','綠':'#2d5a27','深綠':'#1a3a1a','橄欖':'#4f5320',
+  '軍綠':'#4b5320','紅':'#8b1a1a','卡其':'#c4a048','紫':'#5a2d82','黃':'#d4a800',
 };
 function colorToCSS(name) {
-  const lc = (name || '').toLowerCase().trim();
-  for (const [key, val] of Object.entries(COLOR_MAP)) {
-    if (lc.includes(key.toLowerCase())) return val;
+  const lc = (name || '').toLowerCase();
+  for (const [k, v] of Object.entries(COLOR_MAP)) {
+    if (lc.includes(k.toLowerCase())) return v;
   }
   return '#4a4a4a';
 }
 
-/** 安全顯示 HTML，防止 XSS */
-function esc(str) {
-  return String(str || '')
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+/** 防 XSS */
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
+                      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  Router（Hash 路由）
-//  #/           → 首頁
-//  #/cat/tops   → 小分類列表
-//  #/list/tops/襯衫 → 商品列表
-//  #/product/72175  → 商品詳細
+//  Router  (#/ | #/cat/上衣 | #/list/上衣/襯衫 | #/product/MODEL)
 // ═══════════════════════════════════════════════════════════════
 window.addEventListener('hashchange', () => App.route());
 
 // ═══════════════════════════════════════════════════════════════
-//  App 主程式
+//  App
 // ═══════════════════════════════════════════════════════════════
 const App = {
   $app: null,
 
   init() {
     this.$app = document.getElementById('app');
-    const footerFb = document.getElementById('footer-fb-link');
-    if (footerFb) footerFb.href = CONFIG.FB_URL;
+    const fb = document.getElementById('footer-fb-link');
+    if (fb) fb.href = CONFIG.FB_URL;
     Lightbox.init();
     this.route();
   },
@@ -162,14 +173,17 @@ const App = {
   },
 
   async route() {
-    const hash = location.hash.replace(/^#/, '') || '/';
-    const parts = hash.split('/').filter(Boolean);
-    const page = parts[0] || '';
+    const hash  = location.hash.replace(/^#\/?/, '');
+    const parts = hash ? hash.split('/') : [];
+    const page  = parts[0] || '';
 
     try {
-      if (!page)              await this.renderHome();
-      else if (page === 'cat')     await this.renderCategory(parts[1] || '');
-      else if (page === 'list')    await this.renderProductList(parts[1] || '', decodeURIComponent(parts[2] || ''));
+      if (!page)               await this.renderHome();
+      else if (page === 'cat') await this.renderCategory(decodeURIComponent(parts[1] || ''));
+      else if (page === 'list') await this.renderProductList(
+        decodeURIComponent(parts[1] || ''),
+        decodeURIComponent(parts[2] || '')
+      );
       else if (page === 'product') await this.renderProductDetail(decodeURIComponent(parts[1] || ''));
       else                         await this.renderHome();
     } catch (err) {
@@ -180,66 +194,74 @@ const App = {
   },
 
   // ──────────────────────────────────────────────────────────────
-  //  頁面 1：首頁（大分類卡片）
+  //  頁面 1：首頁（大分類，從 Sheet 自動讀取）
   // ──────────────────────────────────────────────────────────────
   async renderHome() {
     this.showLoading();
-    const products = await loadProducts();
+    const products  = await loadProducts();
+    const structure = buildStructure(products);
+    const grouped   = groupByModel(products);
 
     // 計算各大分類商品數
     const countMap = {};
-    groupByModel(products).forEach(p => {
+    grouped.forEach(p => {
       countMap[p.main_category] = (countMap[p.main_category] || 0) + 1;
     });
 
     this.setBreadcrumb([]);
 
-    const cards = CONFIG.CATEGORIES.map(cat => {
-      const count = countMap[cat.name] || 0;
+    const cards = Object.keys(structure).map(mainCat => {
+      const count   = countMap[mainCat] || 0;
+      const subCount = structure[mainCat].length;
       return `
-        <a class="cat-card fade-in" href="#/cat/${esc(cat.id)}">
-          <div class="cat-card-icon">${cat.icon}</div>
-          <div class="cat-card-name">${esc(cat.name)}</div>
-          <div class="cat-card-en">${esc(cat.nameEn)}</div>
-          <div class="cat-card-count">${count > 0 ? `${count} 項商品` : '即將上架'}</div>
+        <a class="cat-card fade-in" href="#/cat/${encodeURIComponent(mainCat)}">
+          <div class="cat-card-name">${esc(mainCat)}</div>
+          <div class="cat-card-meta">${subCount} 個小分類・${count} 項商品</div>
           <span class="cat-card-arrow">›</span>
         </a>`;
     }).join('');
+
+    const isEmpty = Object.keys(structure).length === 0;
 
     this.$app.innerHTML = `
       <div class="home-header fade-in">
         <h1>商品<br>型錄</h1>
         <p>PRODUCT CATALOG</p>
       </div>
-      <div class="category-grid">${cards}</div>`;
+      ${isEmpty
+        ? `<div class="empty-state"><p>尚未有商品資料，請先在 Google Sheet 新增商品</p></div>`
+        : `<div class="category-grid">${cards}</div>`
+      }`;
   },
 
   // ──────────────────────────────────────────────────────────────
-  //  頁面 2：小分類列表
+  //  頁面 2：小分類列表（從 Sheet 自動讀取）
   // ──────────────────────────────────────────────────────────────
-  async renderCategory(catId) {
+  async renderCategory(mainCat) {
     this.showLoading();
-    const products = await loadProducts();
+    const products  = await loadProducts();
+    const structure = buildStructure(products);
 
-    const cat = CONFIG.CATEGORIES.find(c => c.id === catId);
-    if (!cat) { await this.renderHome(); return; }
+    if (!structure[mainCat]) { await this.renderHome(); return; }
 
-    // 計算各小分類商品數
+    const grouped = groupByModel(products.filter(p => p.main_category === mainCat));
     const subCount = {};
-    groupByModel(products.filter(p => p.main_category === cat.name))
-      .forEach(p => { subCount[p.sub_category] = (subCount[p.sub_category] || 0) + 1; });
+    grouped.forEach(p => {
+      subCount[p.sub_category] = (subCount[p.sub_category] || 0) + 1;
+    });
 
-    this.setBreadcrumb([{ label: cat.name, href: `#/cat/${catId}` }]);
+    this.setBreadcrumb([{ label: mainCat, href: `#/cat/${encodeURIComponent(mainCat)}` }]);
 
-    const cards = cat.subs.map(sub => `
-      <a class="sub-card fade-in" href="#/list/${esc(catId)}/${encodeURIComponent(sub)}">
+    const cards = structure[mainCat].map(sub => `
+      <a class="sub-card fade-in"
+         href="#/list/${encodeURIComponent(mainCat)}/${encodeURIComponent(sub)}">
         <span class="sub-card-name">${esc(sub)}</span>
         <span class="sub-card-count">${subCount[sub] || '—'}</span>
       </a>`).join('');
 
     this.$app.innerHTML = `
       <button class="back-btn" onclick="history.back()">返回分類</button>
-      <div class="page-title fade-in">${esc(cat.name)} <span>${esc(cat.nameEn)}</span></div>
+      <div class="page-title fade-in">${esc(mainCat)}</div>
       <div class="page-subtitle">選擇小分類</div>
       <div class="sub-grid">${cards}</div>`;
   },
@@ -247,37 +269,29 @@ const App = {
   // ──────────────────────────────────────────────────────────────
   //  頁面 3：商品列表
   // ──────────────────────────────────────────────────────────────
-  async renderProductList(catId, subName) {
+  async renderProductList(mainCat, subCat) {
     this.showLoading();
     const products = await loadProducts();
-
-    const cat = CONFIG.CATEGORIES.find(c => c.id === catId);
-    const catName = cat ? cat.name : catId;
-
-    const grouped = groupByModel(
-      products.filter(p => p.main_category === catName && p.sub_category === subName)
+    const grouped  = groupByModel(
+      products.filter(p => p.main_category === mainCat && p.sub_category === subCat)
     );
 
     this.setBreadcrumb([
-      { label: catName, href: `#/cat/${catId}` },
-      { label: subName }
+      { label: mainCat, href: `#/cat/${encodeURIComponent(mainCat)}` },
+      { label: subCat }
     ]);
 
     if (grouped.length === 0) {
       this.$app.innerHTML = `
         <button class="back-btn" onclick="history.back()">返回</button>
-        <div class="page-title fade-in">${esc(subName)}</div>
+        <div class="page-title fade-in">${esc(subCat)}</div>
         <div class="empty-state"><p>此分類尚無商品</p></div>`;
       return;
     }
 
     const cards = grouped.map(p => {
-      const firstVariant = p.variants[0] || {};
-      const imgSrc = firstVariant.imgs?.[0] || '';
-
-      // 顏色色塊
-      const dots = p.variants
-        .filter(v => v.color)
+      const imgSrc = p.variants[0]?.imgs[0] || '';
+      const dots   = p.variants.filter(v => v.color)
         .map(v => `<span class="color-dot" style="background:${colorToCSS(v.color)}" title="${esc(v.color)}"></span>`)
         .join('');
       const colorLabel = p.variants.filter(v => v.color).map(v => esc(v.color)).join(' / ');
@@ -286,7 +300,8 @@ const App = {
         <a class="product-card fade-in" href="#/product/${encodeURIComponent(p.model)}">
           <div class="product-card-img-wrap">
             ${imgSrc
-              ? `<img src="${esc(imgSrc)}" alt="${esc(p.name)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+              ? `<img src="${esc(imgSrc)}" alt="${esc(p.name)}" loading="lazy"
+                      onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
               : ''}
             <div class="img-placeholder" style="${imgSrc ? 'display:none' : ''}">📦</div>
           </div>
@@ -301,7 +316,7 @@ const App = {
 
     this.$app.innerHTML = `
       <button class="back-btn" onclick="history.back()">返回</button>
-      <div class="page-title fade-in">${esc(subName)}</div>
+      <div class="page-title fade-in">${esc(subCat)}</div>
       <div class="page-subtitle">${grouped.length} 項商品</div>
       <div class="product-grid">${cards}</div>`;
   },
@@ -312,8 +327,8 @@ const App = {
   async renderProductDetail(model) {
     this.showLoading();
     const products = await loadProducts();
+    const product  = groupByModel(products).find(p => p.model === model);
 
-    const product = groupByModel(products).find(p => p.model === model);
     if (!product) {
       this.$app.innerHTML = `
         <button class="back-btn" onclick="history.back()">返回</button>
@@ -321,36 +336,32 @@ const App = {
       return;
     }
 
-    const cat = CONFIG.CATEGORIES.find(c => c.name === product.main_category);
-    const catId = cat ? cat.id : '';
+    const main = product.main_category;
+    const sub  = product.sub_category;
     this.setBreadcrumb([
-      { label: product.main_category, href: `#/cat/${catId}` },
-      { label: product.sub_category,  href: `#/list/${catId}/${encodeURIComponent(product.sub_category)}` },
+      { label: main, href: `#/cat/${encodeURIComponent(main)}` },
+      { label: sub,  href: `#/list/${encodeURIComponent(main)}/${encodeURIComponent(sub)}` },
       { label: product.model }
     ]);
 
-    // 詳細頁的狀態
     let activeColorIdx = 0;
     let activeImg = product.variants[0]?.imgs[0] || '';
 
     const render = () => {
       const variant = product.variants[activeColorIdx] || product.variants[0];
-      const imgs = variant.imgs || [];
+      const imgs    = variant.imgs || [];
       window.lightboxImgs = imgs;
 
-      // 主圖
       const mainImgHtml = activeImg
         ? `<img src="${esc(activeImg)}" alt="${esc(product.name)}" onerror="this.style.opacity=0.2">`
         : `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:64px;opacity:0.15">📦</div>`;
 
-      // 縮圖列
       const thumbs = imgs.map((url, i) => `
         <img class="thumb-item ${url === activeImg ? 'active' : ''}"
              src="${esc(url)}" alt="圖 ${i+1}" loading="lazy"
              onclick="App.selectImg('${esc(url)}')"
              onerror="this.style.display='none'" />`).join('');
 
-      // 顏色按鈕
       const colorBtns = product.variants.map((v, i) => `
         <button class="color-btn ${i === activeColorIdx ? 'active' : ''}"
                 onclick="App.selectColor(${i})">
@@ -358,42 +369,34 @@ const App = {
           ${esc(v.color || '標準色')}
         </button>`).join('');
 
-      // 材質
-      const materialHtml = product.material
-        ? `<div class="divider"></div>
-           <div class="label">材質</div>
-           <p class="material-text">${esc(product.material)}</p>`
-        : '';
+      const materialHtml = product.material ? `
+        <div class="divider"></div>
+        <div class="label">材質</div>
+        <p class="material-text">${esc(product.material)}</p>` : '';
 
-      // 描述
-      const descHtml = product.description
-        ? `<div class="divider"></div>
-           <div class="label">商品說明</div>
-           <p class="description-text">${esc(product.description)}</p>`
-        : '';
+      const descHtml = product.description ? `
+        <div class="divider"></div>
+        <div class="label">商品說明</div>
+        <p class="description-text">${esc(product.description)}</p>` : '';
 
       document.getElementById('detail-inner').innerHTML = `
-        <!-- 左：圖片 -->
         <div class="product-images">
-          <div class="main-img-wrap" onclick="Lightbox.open(window.lightboxImgs, 0)">
+          <div class="main-img-wrap" onclick="Lightbox.open(window.lightboxImgs,0)">
             ${mainImgHtml}
           </div>
           <div class="thumb-list">${thumbs}</div>
         </div>
 
-        <!-- 右：資訊 -->
         <div class="product-info">
           <div class="product-info-model">${esc(product.model)}</div>
           <div class="product-info-name">${esc(product.name)}</div>
 
           ${product.variants.length > 0 ? `
             <div class="label">顏色</div>
-            <div class="color-options">${colorBtns}</div>
-          ` : ''}
+            <div class="color-options">${colorBtns}</div>` : ''}
 
           ${materialHtml}
           ${descHtml}
-
           <div class="divider"></div>
 
           <a class="btn-fb" href="${esc(CONFIG.FB_URL)}" target="_blank" rel="noopener">
@@ -408,44 +411,35 @@ const App = {
 
     render();
 
-    // 切換顏色
     this.selectColor = (idx) => {
       activeColorIdx = idx;
       activeImg = product.variants[idx]?.imgs[0] || '';
       render();
     };
-    // 切換圖片
-    this.selectImg = (url) => {
-      activeImg = url;
-      render();
-    };
+    this.selectImg = (url) => { activeImg = url; render(); };
   },
 
-  // 設定麵包屑
   setBreadcrumb(items) {
     const $bc = document.getElementById('breadcrumb');
     if (!$bc) return;
     if (!items.length) { $bc.innerHTML = ''; return; }
-    const parts = [
+    $bc.innerHTML = [
       `<a href="#/">首頁</a>`,
       ...items.map((item, i) => {
         const isLast = i === items.length - 1;
-        return `<span class="sep">›</span>` +
-          (isLast || !item.href
-            ? `<span class="current">${esc(item.label)}</span>`
-            : `<a href="${esc(item.href)}">${esc(item.label)}</a>`);
+        return `<span class="sep">›</span>` + (isLast || !item.href
+          ? `<span class="current">${esc(item.label)}</span>`
+          : `<a href="${esc(item.href)}">${esc(item.label)}</a>`);
       })
-    ];
-    $bc.innerHTML = parts.join('');
+    ].join('');
   }
 };
 
 // ═══════════════════════════════════════════════════════════════
-//  Lightbox 燈箱
+//  Lightbox
 // ═══════════════════════════════════════════════════════════════
 const Lightbox = {
   imgs: [], idx: 0,
-
   init() {
     document.getElementById('lightbox-overlay').addEventListener('click', () => this.close());
     document.getElementById('lightbox-close').addEventListener('click',   () => this.close());
@@ -458,37 +452,25 @@ const Lightbox = {
       if (e.key === 'Escape')     this.close();
     });
   },
-
-  open(imgs, idx = 0) {
-    this.imgs = imgs || [];
-    if (!this.imgs.length) return;
-    this.idx = idx;
-    this.show();
+  open(imgs, idx=0) {
+    this.imgs = imgs||[]; if (!this.imgs.length) return;
+    this.idx = idx; this.show();
     document.getElementById('lightbox').classList.add('active');
     document.getElementById('lightbox-overlay').classList.add('active');
   },
-
   close() {
     document.getElementById('lightbox').classList.remove('active');
     document.getElementById('lightbox-overlay').classList.remove('active');
   },
-
-  move(dir) {
-    this.idx = (this.idx + dir + this.imgs.length) % this.imgs.length;
-    this.show();
-  },
-
+  move(dir) { this.idx = (this.idx+dir+this.imgs.length)%this.imgs.length; this.show(); },
   show() {
     document.getElementById('lightbox-img').src = this.imgs[this.idx];
-    const counter = document.getElementById('lightbox-counter');
-    counter.textContent = this.imgs.length > 1 ? `${this.idx + 1} / ${this.imgs.length}` : '';
-    const showArrow = this.imgs.length > 1;
-    document.getElementById('lightbox-prev').style.display = showArrow ? '' : 'none';
-    document.getElementById('lightbox-next').style.display = showArrow ? '' : 'none';
+    document.getElementById('lightbox-counter').textContent =
+      this.imgs.length > 1 ? `${this.idx+1} / ${this.imgs.length}` : '';
+    const show = this.imgs.length > 1;
+    document.getElementById('lightbox-prev').style.display = show ? '' : 'none';
+    document.getElementById('lightbox-next').style.display = show ? '' : 'none';
   }
 };
 
-// ═══════════════════════════════════════════════════════════════
-//  啟動
-// ═══════════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => App.init());
