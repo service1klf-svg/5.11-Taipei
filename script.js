@@ -1,476 +1,335 @@
 /**
  * ╔══════════════════════════════════════════════════════════════╗
- * ║         5.11 台灣服飾型錄 — 主程式 (script.js)              ║
+ * ║         5.11 台灣服飾型錄 — 核心程式碼 (script.js)             ║
+ * ║  ⚠️  此檔案包含網頁邏輯，除非您懂 JavaScript，否則請勿修改          ║
+ * ║  功能：色碼智慧偵測、藏匿色碼文字、首頁目錄、分類頁、庫存查詢    ║
  * ╚══════════════════════════════════════════════════════════════╝
  */
 
-// ═══════════════════════════════════════════════════════════════
-//  快取
-// ═══════════════════════════════════════════════════════════════
-let cachedProducts  = null;   // 所有商品原始資料
-let cachedGrouped   = null;   // 依 model 合併後的商品
-let cachedStructure = null;   // 分類結構 { '上衣': ['襯衫','T恤',...], ... }
+(function() {
+  const G_SHEET_API = 'https://docs.google.com/spreadsheets/d/';
+  const G_SHEET_POST = '/gviz/tq?tqx=out:json&tq=&sheet=';
+  let productData = [];
+  let categoryMap = {};
+  const currentPath = window.location.hash.slice(2);
+  const elements = {};
 
-// ═══════════════════════════════════════════════════════════════
-//  資料讀取
-// ═══════════════════════════════════════════════════════════════
+  // 初始化流程
+  document.addEventListener('DOMContentLoaded', init);
 
-/** 解析 Google Sheets GViz JSON 回傳格式 */
-function parseGViz(raw) {
-  const json = JSON.parse(raw.replace(/^[^(]+\(/, '').replace(/\);?\s*$/, ''));
-  const cols = json.table.cols.map(c => c.label || c.id);
-  return (json.table.rows || []).map(row => {
-    const obj = {};
-    cols.forEach((col, i) => {
-      const cell = row.c?.[i];
-      obj[col] = (cell && cell.v != null) ? String(cell.v).trim() : '';
+  async function init() {
+    await cacheElements();
+    showLoading(true);
+    await fetchData();
+    initLightbox();
+    buildNav(productData);
+    showLoading(false);
+    window.addEventListener('hashchange', router);
+    router();
+  }
+
+  // 抓取雲端試算表資料
+  async function fetchData() {
+    if (!CONFIG.SHEET_ID) {
+      showError('請在 config.js 設定 Google Sheet ID');
+      return;
+    }
+    const url = `${G_SHEET_API}${CONFIG.SHEET_ID}${G_SHEET_POST}${CONFIG.SHEET_PRODUCTS}`;
+    try {
+      const response = await fetch(url);
+      const text = await response.text();
+      const json = JSON.parse(text.slice(47, -2));
+      parseSheetData(json);
+    } catch (e) {
+      showError(`讀取 Google Sheet 資料失敗。請確認：<br>1. 試算表已「公開發布至網路」<br>2. ID 正確<br>3. config.js 設定正確`);
+      console.error(e);
+    }
+  }
+
+  // 解析雲端資料
+  function parseSheetData(json) {
+    const cols = json.table.cols.map(c => c.label.toLowerCase().replace(/\s/g, ''));
+    const rows = json.table.rows;
+    const requiredCols = ['main_category', 'sub_category', 'product_name', 'images', 'item_num', 'variants'];
+
+    rows.forEach(r => {
+      const p = {};
+      requiredCols.forEach(col => p[col] = '');
+      p.color_dots = [];
+
+      r.c.forEach((val, index) => {
+        const colLabel = cols[index];
+        if (!colLabel) return;
+        const colVal = val ? val.v : '';
+        p[colLabel] = colVal;
+      });
+
+      if (!p.main_category || !p.product_name) return;
+
+      const main = p.main_category.trim();
+      const sub = p.sub_category ? p.sub_category.trim() : '其他';
+
+      // 智慧偵測並處理庫存變體
+      if (p.variants) {
+        const varArr = p.variants.split(',').map(v => v.trim()).filter(v => v);
+        
+        varArr.forEach(v => {
+          const varLower = v.toLowerCase();
+          let c = '0';
+          if (varLower.includes('庫存充足') || varLower.includes('充分')) c = '2';
+          else if (varLower.includes('少量') || varLower.includes('庫存不足') || varLower.includes('紧张')) c = '1';
+          
+          let name = v.replace(/(少量|庫存不足|庫存充足|充分|紧张)/i, '').trim();
+          
+          // 🛠️ 核心修正：智慧掃描文字裡的色碼
+          let s = ''; 
+          const hexMatch = v.match(/#([a-fA-F0-9]{6}|[a-fA-F0-9]{3})/);
+          if (hexMatch) {
+            s = hexMatch[0];
+            // 從名字中把偵測到的色碼徹底藏起來
+            name = name.replace(s, '').trim();
+          }
+
+          p.color_dots.push({ n: name, c: c, s: s });
+        });
+      }
+
+      if (!categoryMap[main]) {
+        categoryMap[main] = { key: encodeURIComponent(main), subs: {} };
+      }
+      if (!categoryMap[main].subs[sub]) {
+        categoryMap[main].subs[sub] = { key: encodeURIComponent(sub), count: 0 };
+      }
+      categoryMap[main].subs[sub].count++;
+
+      p.main_key = categoryMap[main].key;
+      p.sub_key = categoryMap[main].subs[sub].key;
+      if (p.images) p.imagesArr = p.images.split(',').map(v => v.trim()).filter(v => v);
+      
+      productData.push(p);
     });
-    return obj;
-  }).filter(r => r.model || r.name);
-}
+  }
 
-/** 抓商品資料（有快取就直接用） */
-async function loadProducts() {
-  if (cachedProducts) return cachedProducts;
-  const url = `https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(CONFIG.SHEET_PRODUCTS)}`;
-  const resp = await fetch(url);
-  if (!resp.ok) throw new Error(`無法讀取工作表（HTTP ${resp.status}）`);
-  cachedProducts = parseGViz(await resp.text());
-  return cachedProducts;
-}
+  // 路由器
+  function router() {
+    elements.app.innerHTML = '';
+    const hash = window.location.hash.slice(2);
+    const path = hash.split('/').map(v => decodeURIComponent(v));
+    buildBreadcrumb(path);
 
-/**
- * 從原始資料建立分類結構
- * 回傳：{ '上衣': ['襯衫','T恤',...], '外套': ['外套'], ... }
- * 順序依照 Sheet 裡第一次出現的順序
- */
-function buildStructure(products) {
-  if (cachedStructure) return cachedStructure;
-  const structure = {};   // { mainCat: Set(subCats) }
-  const mainOrder = [];   // 大分類出現順序
-
-  products.forEach(row => {
-    const main = row.main_category?.trim();
-    const sub  = row.sub_category?.trim();
-    if (!main) return;
-
-    if (!structure[main]) {
-      structure[main] = [];
-      mainOrder.push(main);
+    if (!hash || path[0] === '') {
+      renderHomePage();
+    } else if (path.length === 2) {
+      renderCategoryPage(path[0], path[1]);
+    } else if (path.length === 1 && path[0] !== '') {
+      renderMainPage(path[0]);
+    } else if (path.length > 2) {
+      renderProductDetailPage(path[2]);
     }
-    if (sub && !structure[main].includes(sub)) {
-      structure[main].push(sub);
-    }
-  });
+  }
 
-  // 依出現順序重組
-  cachedStructure = {};
-  mainOrder.forEach(main => { cachedStructure[main] = structure[main]; });
-  return cachedStructure;
-}
+  // 🛠️ 頁面渲染：商品詳細頁 (已修正支援藏匿色碼)
+  function renderProductDetailPage(id) {
+    const p = productData.find(v => v.item_num == id);
+    if (!p) { showError('找不到商品'); return; }
 
-/**
- * 依 model 合併多個顏色列 → 單一商品物件
- * { model, name, main_category, sub_category, material, description, variants[] }
- * variant: { color, imgs[] }
- */
-function groupByModel(products) {
-  if (cachedGrouped && products === cachedProducts) return cachedGrouped;
-
-  const map = new Map();
-  products.forEach(row => {
-    const model = row.model?.trim();
-    if (!model) return;
-
-    if (!map.has(model)) {
-      map.set(model, {
-        model,
-        name:          row.name          || '',
-        main_category: row.main_category || '',
-        sub_category:  row.sub_category  || '',
-        material:      row.material      || '',
-        description:   row.description   || '',
-        variants: []
+    const div = document.createElement('div');
+    div.className = 'product-detail fade-in';
+    const mainImg = p.imagesArr && p.imagesArr.length ? p.imagesArr[0] : '';
+    let imgsHTML = '';
+    if (p.imagesArr && p.imagesArr.length > 1) {
+      p.imagesArr.forEach((src, idx) => {
+        imgsHTML += `<img src="${src}" class="thumb-item ${idx === 0 ? 'active' : ''}" data-index="${idx}" alt="縮圖 ${idx+1}">`;
       });
     }
-    const imgs = [];
-    for (let i = 1; i <= 10; i++) {
-      const u = row[`img${i}`]?.trim();
-      if (u) imgs.push(u);
+
+    let varsHTML = '';
+    let hasVars = false;
+    
+    // 如果有舊款顏色資料，優先顯示
+    if (p.color_dots && p.color_dots.length) {
+      p.color_dots.forEach(v => {
+        const status = v.c === '2' ? '庫存充足' : (v.c === '1' ? '少量現貨' : '目前無貨');
+        // 🛠️ 這裡使用了在設定檔中已抓取的藏匿色碼 logic
+        varsHTML += `
+          <button class="color-btn" data-model="${p.product_name}" data-variant="${v.n}">
+            <div class="color-btn-swatch" style="background-color:${v.s || '#5a5c5f'}"></div>
+            ${v.n} <span class="sub-card-count" style="margin-left:8px">${status}</span>
+          </button>
+        `;
+      });
+      hasVars = true;
     }
-    map.get(model).variants.push({ color: row.color?.trim() || '', imgs });
+    
+    // 如果有顏色清單資料，則顯示純按鈕
+    if (!hasVars && p.color_list) {
+      const colors = p.color_list.split(',').map(v => v.trim()).filter(v => v);
+      colors.forEach(c => {
+        // 🛠️ 這裡使用了最智慧掃描與藏匿 logic
+        let name = c;
+        let swatchColor = '#5a5c5f'; // 預設灰色色塊
+        const hexMatch = c.match(/#([a-fA-F0-9]{6}|[a-fA-F0-9]{3})/);
+        
+        if (hexMatch) {
+          swatchColor = hexMatch[0];
+          // 從名字中把偵測到的色碼徹底藏起來
+          name = name.replace(swatchColor, '').trim();
+        }
+
+        varsHTML += `
+          <button class="color-btn" data-model="${p.product_name}" data-variant="${name}">
+            <div class="color-btn-swatch" style="background-color:${swatchColor}"></div>
+            ${name}
+          </button>
+        `;
+      });
+      hasVars = true;
+    }
+
+    const matHTML = p.material ? `<p class="divider"></p><p class="label">材質說明</p><p class="material-text">${p.material}</p>` : '';
+    const descHTML = p.description ? `<p class="divider"></p><p class="label">商品描述</p><p class="description-text fade-in hidden mt-16">${p.description}</p>` : '';
+
+    div.innerHTML = `
+      <div class="product-left">
+        <div class="main-img-wrap fade-in">
+          ${mainImg ? `<img id="main-product-img" src="${mainImg}" alt="${p.product_name}">` : ''}
+        </div>
+        ${imgsHTML ? `<div class="thumb-list mt-8">${imgsHTML}</div>` : ''}
+      </div>
+      <div class="product-right">
+        <div class="product-right-head">
+          <button class="back-btn" onclick="history.back()">${p.main_category}</button>
+          <p class="product-info-model">${p.item_num || ''}</p>
+          <h1 class="product-info-name">${p.product_name}</h1>
+        </div>
+        ${hasVars ? `<div class="color-options mt-24">${varsHTML}</div>` : ''}
+        ${matHTML}
+        ${descHTML}
+        ${p.description ? `<button id="toggle-desc-btn" class="breadcrumb" style="border:none;background:none;font-weight:700;letter-spacing:1px;margin-top:20px;cursor:pointer">...展開完整描述</button>` : ''}
+        <a id="询问按鈕" href="#" class="btn-fb mt-24">前往 FB 粉專詢問</a>
+      </div>
+    `;
+    elements.app.appendChild(div);
+
+    // 商品頁邏輯
+    setTimeout(() => {
+      const app = document.getElementById('app');
+      const询按鈕 = app.querySelector('#询问按鈕');
+      const toggleBtn = app.querySelector('#toggle-desc-btn');
+      const descText = app.querySelector('.description-text');
+      if(询按鈕)询按鈕.addEventListener('click', on询问);
+      if(toggleBtn)toggleBtn.addEventListener('click', () => {
+        descText.classList.toggle('hidden');
+        toggleBtn.innerText = descText.classList.contains('hidden') ? '...展開完整描述' : '收起描述';
+      });
+
+      // 縮圖切換邏輯
+      const thumbs = app.querySelectorAll('.thumb-item');
+      thumbs.forEach(t => {
+        t.addEventListener('click', () => {
+          thumbs.forEach(v => v.classList.remove('active'));
+          t.classList.add('active');
+          document.getElementById('main-product-img').src = t.src;
+        });
+      });
+
+      // FB 詢問連結邏輯
+      function on询问(e) {
+        if (!elements.currentModel && !elements.currentVariant) {
+          elements.currentModel = p.product_name;
+          elements.currentVariant = ' (通用型號)';
+        }
+        e.preventDefault();
+        询按鈕.innerText = '正在傳送...';
+        setTimeout(() => {
+          let mStr = elements.currentModel || '';
+          if (p.item_num) mStr = `[${p.item_num}] ${mStr}`;
+          const m = encodeURIComponent(`您好，我想詢問：${mStr} | 顏色：${elements.currentVariant || '未選擇'}`);
+          location.href = `${CONFIG.FB_URL}?messaging_ref=catalogue&text=${m}`;
+          elements.currentVariant = '';
+          要素.currentModel = '';
+          询按鈕.innerText = CONFIG.FB_BUTTON_TEXT || '前往 FB 粉專詢問';
+        }, 1200);
+      }
+    }, 100);
+  }
+
+  // 詢問邏輯 (針對首頁與分類頁的快速詢問)
+  elements.currentVariant = '';
+  要素.currentModel = '';
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('.color-btn');
+    if (btn) {
+      // 找到按鈕的所有同層兄弟按鈕，移除 active
+      const btns = btn.parentNode.querySelectorAll('.color-btn');
+      btns.forEach(b => b.classList.remove('active'));
+      // 把點擊的按鈕加上 active
+      btn.classList.add('active');
+      elements.currentModel = btn.dataset.model;
+      elements.currentVariant = btn.dataset.variant;
+    }
   });
 
-  cachedGrouped = Array.from(map.values());
-  return cachedGrouped;
-}
-
-// ═══════════════════════════════════════════════════════════════
-//  工具
-// ═══════════════════════════════════════════════════════════════
-
-/** 顏色名稱 → CSS 色碼 */
-const COLOR_MAP = {
-  '黑':'#1a1a1a','白':'#f0f0f0','深藍':'#1a3a5c','海軍藍':'#1a2f4e',
-  '藍':'#2155a0','navy':'#1a2f4e','灰':'#666','深灰':'#3a3a3a',
-  '淺灰':'#aaa','橘':'#e85d04','棕':'#5a3e28','沙':'#c4a882',
-  '土':'#7a6040','綠':'#2d5a27','深綠':'#1a3a1a','橄欖':'#4f5320',
-  '軍綠':'#4b5320','紅':'#8b1a1a','卡其':'#c4a048','紫':'#5a2d82','黃':'#d4a800',
-};
-function colorToCSS(name) {
-  const lc = (name || '').toLowerCase();
-  for (const [k, v] of Object.entries(COLOR_MAP)) {
-    if (lc.includes(k.toLowerCase())) return v;
+  // 其他工具函式與渲染函式
+  async function cacheElements() {
+    elements.app = document.getElementById('app');
+    elements.breadcrumb = document.getElementById('breadcrumb');
+    document.title = CONFIG.SITE_NAME || '5.11 TACTICAL — 台灣服飾型錄';
   }
-  return '#4a4a4a';
-}
-
-/** 防 XSS */
-function esc(s) {
-  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
-                      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-// ═══════════════════════════════════════════════════════════════
-//  Router  (#/ | #/cat/上衣 | #/list/上衣/襯衫 | #/product/MODEL)
-// ═══════════════════════════════════════════════════════════════
-window.addEventListener('hashchange', () => App.route());
-
-// ═══════════════════════════════════════════════════════════════
-//  App
-// ═══════════════════════════════════════════════════════════════
-const App = {
-  $app: null,
-
-  init() {
-    this.$app = document.getElementById('app');
-    const fb = document.getElementById('footer-fb-link');
-    if (fb) fb.href = CONFIG.FB_URL;
-    Lightbox.init();
-    this.route();
-  },
-
-  showLoading() {
-    this.$app.innerHTML = `
-      <div class="loading-screen">
-        <div class="loading-spinner"></div>
-        <p>載入中...</p>
-      </div>`;
-  },
-
-  showError(msg) {
-    this.$app.innerHTML = `
-      <div class="error-box">
-        <h3>⚠️ 無法載入資料</h3>
-        <p>${esc(msg)}</p>
-        <p style="margin-top:12px;font-size:12px;">
-          請確認：<br>
-          1. config.js 的 SHEET_ID 是否正確<br>
-          2. Google Sheet 是否已「發布到網路」<br>
-          3. 工作表名稱是否為 products
-        </p>
-      </div>`;
-  },
-
-  async route() {
-    const hash  = location.hash.replace(/^#\/?/, '');
-    const parts = hash ? hash.split('/') : [];
-    const page  = parts[0] || '';
-
-    try {
-      if (!page)               await this.renderHome();
-      else if (page === 'cat') await this.renderCategory(decodeURIComponent(parts[1] || ''));
-      else if (page === 'list') await this.renderProductList(
-        decodeURIComponent(parts[1] || ''),
-        decodeURIComponent(parts[2] || '')
-      );
-      else if (page === 'product') await this.renderProductDetail(decodeURIComponent(parts[1] || ''));
-      else                         await this.renderHome();
-    } catch (err) {
-      console.error(err);
-      this.showError(err.message);
+  function showLoading(b) {
+    document.getElementById('loading-screen').className = b ? 'loading-screen' : 'loading-screen hidden';
+  }
+  function showError(msg) {
+    showLoading(false);
+    elements.app.innerHTML = `<div class="error-box fade-in"><h3>⚠️ 設定錯誤</h3><p>${msg}</p></div>`;
+  }
+  function buildNav(data) {
+    const footer = document.querySelector('footer');
+    footer.querySelector('.footer-brand').innerText = CONFIG.SITE_NAME;
+    if (elements.fbLink) elements.fbLink.href = CONFIG.FB_URL;
+  }
+  function buildBreadcrumb(path) {
+    elements.breadcrumb.innerHTML = `<a href="#/">${CONFIG.SITE_NAME}目錄</a>`;
+    if (!path.length || path[0] === '') return;
+    elements.breadcrumb.innerHTML += `<span class="sep">›</span><a href="#/${encodeURIComponent(path[0])}">${path[0]}</a>`;
+    if (path.length > 1) {
+      elements.breadcrumb.innerHTML += `<span class="sep">›</span><a href="#/${encodeURIComponent(path[0])}/${encodeURIComponent(path[1])}">${path[1]}</a>`;
     }
-    window.scrollTo(0, 0);
-  },
-
-  // ──────────────────────────────────────────────────────────────
-  //  頁面 1：首頁（大分類，從 Sheet 自動讀取）
-  // ──────────────────────────────────────────────────────────────
-  async renderHome() {
-    this.showLoading();
-    const products  = await loadProducts();
-    const structure = buildStructure(products);
-    const grouped   = groupByModel(products);
-
-    // 計算各大分類商品數
-    const countMap = {};
-    grouped.forEach(p => {
-      countMap[p.main_category] = (countMap[p.main_category] || 0) + 1;
-    });
-
-    this.setBreadcrumb([]);
-
-    const cards = Object.keys(structure).map(mainCat => {
-      const count   = countMap[mainCat] || 0;
-      const subCount = structure[mainCat].length;
-      return `
-        <a class="cat-card fade-in" href="#/cat/${encodeURIComponent(mainCat)}">
-          <div class="cat-card-name">${esc(mainCat)}</div>
-          <div class="cat-card-meta">${subCount} 個小分類・${count} 項商品</div>
-          <span class="cat-card-arrow">›</span>
-        </a>`;
-    }).join('');
-
-    const isEmpty = Object.keys(structure).length === 0;
-
-    this.$app.innerHTML = `
-      <div class="home-header fade-in">
-        <h1>商品<br>型錄</h1>
-        <p>PRODUCT CATALOG</p>
-      </div>
-      ${isEmpty
-        ? `<div class="empty-state"><p>尚未有商品資料，請先在 Google Sheet 新增商品</p></div>`
-        : `<div class="category-grid">${cards}</div>`
-      }`;
-  },
-
-  // ──────────────────────────────────────────────────────────────
-  //  頁面 2：小分類列表（從 Sheet 自動讀取）
-  // ──────────────────────────────────────────────────────────────
-  async renderCategory(mainCat) {
-    this.showLoading();
-    const products  = await loadProducts();
-    const structure = buildStructure(products);
-
-    if (!structure[mainCat]) { await this.renderHome(); return; }
-
-    const grouped = groupByModel(products.filter(p => p.main_category === mainCat));
-    const subCount = {};
-    grouped.forEach(p => {
-      subCount[p.sub_category] = (subCount[p.sub_category] || 0) + 1;
-    });
-
-    this.setBreadcrumb([{ label: mainCat, href: `#/cat/${encodeURIComponent(mainCat)}` }]);
-
-    const cards = structure[mainCat].map(sub => `
-      <a class="sub-card fade-in"
-         href="#/list/${encodeURIComponent(mainCat)}/${encodeURIComponent(sub)}">
-        <span class="sub-card-name">${esc(sub)}</span>
-        <span class="sub-card-count">${subCount[sub] || '—'}</span>
-      </a>`).join('');
-
-    this.$app.innerHTML = `
-      <button class="back-btn" onclick="history.back()">返回分類</button>
-      <div class="page-title fade-in">${esc(mainCat)}</div>
-      <div class="page-subtitle">選擇小分類</div>
-      <div class="sub-grid">${cards}</div>`;
-  },
-
-  // ──────────────────────────────────────────────────────────────
-  //  頁面 3：商品列表
-  // ──────────────────────────────────────────────────────────────
-  async renderProductList(mainCat, subCat) {
-    this.showLoading();
-    const products = await loadProducts();
-    const grouped  = groupByModel(
-      products.filter(p => p.main_category === mainCat && p.sub_category === subCat)
-    );
-
-    this.setBreadcrumb([
-      { label: mainCat, href: `#/cat/${encodeURIComponent(mainCat)}` },
-      { label: subCat }
-    ]);
-
-    if (grouped.length === 0) {
-      this.$app.innerHTML = `
-        <button class="back-btn" onclick="history.back()">返回</button>
-        <div class="page-title fade-in">${esc(subCat)}</div>
-        <div class="empty-state"><p>此分類尚無商品</p></div>`;
-      return;
+    if (path.length > 2) {
+      elements.breadcrumb.innerHTML += `<span class="sep">›</span><span class="current">${productData.find(p=>p.item_num==path[2])?.product_name || '...'}</span>`;
     }
+  }
 
-    const cards = grouped.map(p => {
-      const imgSrc = p.variants[0]?.imgs[0] || '';
-      const dots   = p.variants.filter(v => v.color)
-        .map(v => `<span class="color-dot" style="background:${colorToCSS(v.color)}" title="${esc(v.color)}"></span>`)
-        .join('');
-      const colorLabel = p.variants.filter(v => v.color).map(v => esc(v.color)).join(' / ');
-
-      return `
-        <a class="product-card fade-in" href="#/product/${encodeURIComponent(p.model)}">
-          <div class="product-card-img-wrap">
-            ${imgSrc
-              ? `<img src="${esc(imgSrc)}" alt="${esc(p.name)}" loading="lazy"
-                      onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
-              : ''}
-            <div class="img-placeholder" style="${imgSrc ? 'display:none' : ''}">📦</div>
-          </div>
-          <div class="product-card-info">
-            <div class="product-card-model">${esc(p.model)}</div>
-            <div class="product-card-name">${esc(p.name)}</div>
-            ${dots ? `<div class="color-dots">${dots}</div>` : ''}
-            ${colorLabel ? `<div class="color-label">${colorLabel}</div>` : ''}
-          </div>
-        </a>`;
-    }).join('');
-
-    this.$app.innerHTML = `
-      <button class="back-btn" onclick="history.back()">返回</button>
-      <div class="page-title fade-in">${esc(subCat)}</div>
-      <div class="page-subtitle">${grouped.length} 項商品</div>
-      <div class="product-grid">${cards}</div>`;
-  },
-
-  // ──────────────────────────────────────────────────────────────
-  //  頁面 4：商品詳細頁
-  // ──────────────────────────────────────────────────────────────
-  async renderProductDetail(model) {
-    this.showLoading();
-    const products = await loadProducts();
-    const product  = groupByModel(products).find(p => p.model === model);
-
-    if (!product) {
-      this.$app.innerHTML = `
-        <button class="back-btn" onclick="history.back()">返回</button>
-        <div class="error-box"><h3>找不到商品 ${esc(model)}</h3></div>`;
-      return;
-    }
-
-    const main = product.main_category;
-    const sub  = product.sub_category;
-    this.setBreadcrumb([
-      { label: main, href: `#/cat/${encodeURIComponent(main)}` },
-      { label: sub,  href: `#/list/${encodeURIComponent(main)}/${encodeURIComponent(sub)}` },
-      { label: product.model }
-    ]);
-
-    let activeColorIdx = 0;
-    let activeImg = product.variants[0]?.imgs[0] || '';
-
-    const render = () => {
-      const variant = product.variants[activeColorIdx] || product.variants[0];
-      const imgs    = variant.imgs || [];
-      window.lightboxImgs = imgs;
-
-      const mainImgHtml = activeImg
-        ? `<img src="${esc(activeImg)}" alt="${esc(product.name)}" onerror="this.style.opacity=0.2">`
-        : `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:64px;opacity:0.15">📦</div>`;
-
-      const thumbs = imgs.map((url, i) => `
-        <img class="thumb-item ${url === activeImg ? 'active' : ''}"
-             src="${esc(url)}" alt="圖 ${i+1}" loading="lazy"
-             onclick="App.selectImg('${esc(url)}')"
-             onerror="this.style.display='none'" />`).join('');
-
-      const colorBtns = product.variants.map((v, i) => `
-        <button class="color-btn ${i === activeColorIdx ? 'active' : ''}"
-                onclick="App.selectColor(${i})">
-          <span class="color-btn-swatch" style="background:${colorToCSS(v.color)}"></span>
-          ${esc(v.color || '標準色')}
-        </button>`).join('');
-
-      const materialHtml = product.material ? `
-        <div class="divider"></div>
-        <div class="label">材質</div>
-        <p class="material-text">${esc(product.material)}</p>` : '';
-
-      const descHtml = product.description ? `
-        <div class="divider"></div>
-        <div class="label">商品說明</div>
-        <p class="description-text">${esc(product.description)}</p>` : '';
-
-      document.getElementById('detail-inner').innerHTML = `
-        <div class="product-images">
-          <div class="main-img-wrap" onclick="Lightbox.open(window.lightboxImgs,0)">
-            ${mainImgHtml}
-          </div>
-          <div class="thumb-list">${thumbs}</div>
+  function renderMainPage(main) {
+    const p = document.createElement('h1'); p.className = 'page-title'; p.innerText = main;
+    const s = document.createElement('p'); s.className = 'page-subtitle'; s.innerText = productData.find(v => v.main_category == main)?.description || `${main} 分類下的所有細項商品`;
+    elements.app.appendChild(p); elements.app.appendChild(s);
+    const grid = document.createElement('div'); grid.className = 'category-grid sub-grid fade-in'; grid.innerHTML = categoryMap[main] ? Object.keys(categoryMap[main].subs).map(sub => `<a href="#/${encodeURIComponent(main)}/${encodeURIComponent(sub)}" class="sub-card"><span class="sub-card-name">${sub}</span><span class="sub-card-count">${categoryMap[main].subs[sub].count}</span></a>`).join('') : '<p>找不到此分類</p>'; elements.app.appendChild(grid);
+  }
+  function renderHomePage() {
+    const h = document.createElement('div'); h.className = 'home-header fade-in'; h.innerHTML = `<h1>${CONFIG.SITE_NAME}</h1><p>${CONFIG.SITE_SUBTITLE}</p>`; elements.app.appendChild(h);
+    const grid = document.createElement('div'); grid.className = 'category-grid fade-in'; grid.innerHTML = Object.keys(categoryMap).map(main => `<a href="#/${encodeURIComponent(main)}" class="cat-card"><h3 class="cat-card-name">${main}</h3><p class="cat-card-meta">總計 ${Object.keys(categoryMap[main].subs).length} 個分類</p><span class="cat-card-arrow">→</span></a>`).join(''); elements.app.appendChild(grid);
+  }
+  function renderCategoryPage(main, sub) {
+    const p = document.createElement('h1'); p.className = 'page-title'; h1.innerHTML = `<span>${main}</span> / ${sub}`;
+    elements.app.appendChild(p);
+    const grid = document.createElement('div'); grid.className = 'product-grid fade-in';
+    const products = productData.filter(v => v.main_category == main && v.sub_category == sub);
+    grid.innerHTML = products.length ? products.map(p => `
+      <a href="#/${encodeURIComponent(main)}/${encodeURIComponent(sub)}/${p.item_num}" class="product-card">
+        <div class="product-card-img-wrap">${p.imagesArr && p.imagesArr.length ? `<img src="${p.imagesArr[0]}" alt="${p.product_name}">` : ''}</div>
+        <div class="product-card-info">
+          <p class="product-card-model">${p.item_num || ''}</p>
+          <p class="product-card-name">${p.product_name}</p>
         </div>
-
-        <div class="product-info">
-          <div class="product-info-model">${esc(product.model)}</div>
-          <div class="product-info-name">${esc(product.name)}</div>
-
-          ${product.variants.length > 0 ? `
-            <div class="label">顏色</div>
-            <div class="color-options">${colorBtns}</div>` : ''}
-
-          ${materialHtml}
-          ${descHtml}
-          <div class="divider"></div>
-
-          <a class="btn-fb" href="${esc(CONFIG.FB_URL)}" target="_blank" rel="noopener">
-            📘 ${esc(CONFIG.FB_BUTTON_TEXT)}
-          </a>
-        </div>`;
-    };
-
-    this.$app.innerHTML = `
-      <button class="back-btn" onclick="history.back()">返回</button>
-      <div class="product-detail fade-in" id="detail-inner"></div>`;
-
-    render();
-
-    this.selectColor = (idx) => {
-      activeColorIdx = idx;
-      activeImg = product.variants[idx]?.imgs[0] || '';
-      render();
-    };
-    this.selectImg = (url) => { activeImg = url; render(); };
-  },
-
-  setBreadcrumb(items) {
-    const $bc = document.getElementById('breadcrumb');
-    if (!$bc) return;
-    if (!items.length) { $bc.innerHTML = ''; return; }
-    $bc.innerHTML = [
-      `<a href="#/">首頁</a>`,
-      ...items.map((item, i) => {
-        const isLast = i === items.length - 1;
-        return `<span class="sep">›</span>` + (isLast || !item.href
-          ? `<span class="current">${esc(item.label)}</span>`
-          : `<a href="${esc(item.href)}">${esc(item.label)}</a>`);
-      })
-    ].join('');
+      </a>`).join('') : '<p class="empty-state">目前此分類下無商品資料</p>'; elements.app.appendChild(grid);
   }
-};
 
-// ═══════════════════════════════════════════════════════════════
-//  Lightbox
-// ═══════════════════════════════════════════════════════════════
-const Lightbox = {
-  imgs: [], idx: 0,
-  init() {
-    document.getElementById('lightbox-overlay').addEventListener('click', () => this.close());
-    document.getElementById('lightbox-close').addEventListener('click',   () => this.close());
-    document.getElementById('lightbox-prev').addEventListener('click',    () => this.move(-1));
-    document.getElementById('lightbox-next').addEventListener('click',    () => this.move(1));
-    document.addEventListener('keydown', e => {
-      if (!document.getElementById('lightbox').classList.contains('active')) return;
-      if (e.key === 'ArrowLeft')  this.move(-1);
-      if (e.key === 'ArrowRight') this.move(1);
-      if (e.key === 'Escape')     this.close();
-    });
-  },
-  open(imgs, idx=0) {
-    this.imgs = imgs||[]; if (!this.imgs.length) return;
-    this.idx = idx; this.show();
-    document.getElementById('lightbox').classList.add('active');
-    document.getElementById('lightbox-overlay').classList.add('active');
-  },
-  close() {
-    document.getElementById('lightbox').classList.remove('active');
-    document.getElementById('lightbox-overlay').classList.remove('active');
-  },
-  move(dir) { this.idx = (this.idx+dir+this.imgs.length)%this.imgs.length; this.show(); },
-  show() {
-    document.getElementById('lightbox-img').src = this.imgs[this.idx];
-    document.getElementById('lightbox-counter').textContent =
-      this.imgs.length > 1 ? `${this.idx+1} / ${this.imgs.length}` : '';
-    const show = this.imgs.length > 1;
-    document.getElementById('lightbox-prev').style.display = show ? '' : 'none';
-    document.getElementById('lightbox-next').style.display = show ? '' : 'none';
-  }
-};
-
-document.addEventListener('DOMContentLoaded', () => App.init());
+  // Lightbox
+  function initLightbox() {
+    elements.lb = document.getElementById('lightbox'); elements.lbOver = document.getElementById('lightbox-overlay'); elements.lbImg = document.getElementById('lightbox-img'); elements.lbCount = document.getElementById('lightbox-counter'); document.getElementById('app').addEventListener('click', e => { const img = e.target.closest('#main-product-img'); if (img) showLB(img); }); elements.lbOver.addEventListener('click', closeLB); document.getElementById('lightbox-close').addEventListener('click', closeLB); elements.lb.addEventListener('click', e => { if (e.target.closest('#lightbox-prev')) navigateLB(-1); if (e.target.closest('#lightbox-next')) navigateLB(1); }); document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLB(); if (e.key === 'ArrowLeft') navigateLB(-1); if (e.key === 'ArrowRight') navigateLB(1); }); }
+  let lbP, lbIdx; function showLB(img) { elements.lbImg.src = ''; elements.lbOver.classList.add('active'); elements.lb.classList.add('active'); const hash = window.location.hash.slice(2).split('/'); lbP = productData.find(v => v.item_num == hash[hash.length - 1]); lbIdx = lbP ? 0 : 0; elements.lbImg.src = img.src; updateLBMeta(); }
+  function updateLBMeta() { if (lbP && lbP.imagesArr) elements.lbCount.innerText = `${lbIdx + 1} / ${lbP.imagesArr.length}`; else elements.lbCount.innerText = ''; }
+  function closeLB() { elements.lbOver.classList.remove('active'); elements.lb.classList.remove('active'); elements.lbImg.src = ''; }
+  function navigateLB(d) { if (lbP && lbP.imagesArr) { lbIdx = (lbIdx + d + lbP.imagesArr.length) % lbP.imagesArr.length; elements.lbImg.src = lbP.imagesArr[lbIdx]; updateLBMeta(); } }
+})();
