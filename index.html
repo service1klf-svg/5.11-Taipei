@@ -6,63 +6,56 @@
   <title>5.11 TACTICAL — 台灣服飾型錄</title>
   <meta name="description" content="5.11 Tactical 台灣授權服飾型錄，提供各類戰術服裝、外套、配件查詢" />
 
-  <!-- Google Fonts：Barlow Condensed（標題）+ Barlow（內文） -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-  <!-- ══════════════════════════════════
-       頂部導覽列
-  ══════════════════════════════════ -->
   <header class="site-header">
     <div class="header-inner">
-      <!-- Logo + 返回首頁 -->
       <a href="#/" class="site-logo" id="logo-link">
-        <span class="logo-brand">5.11</span>
-        <span class="logo-tactical">TACTICAL</span>
-        <span class="logo-sub">TAIWAN</span>
+        <img src="511_logo.png" alt="5.11 TACTICAL TAIWAN" class="logo-image" />
       </a>
 
-      <!-- 麵包屑導覽（目前所在位置） -->
       <nav class="breadcrumb" id="breadcrumb" aria-label="目前位置">
-        <!-- 由 JS 動態填入 -->
-      </nav>
+        </nav>
 
-      <!-- 手機版選單按鈕（目前版本不需要，預留） -->
+      <div class="header-social-links">
+        <a id="header-fb-link" href="#" target="_blank" rel="noopener" class="social-icon-btn fb" title="Facebook">
+          <i class="fab fa-facebook-f"></i>
+        </a>
+        <a href="https://www.instagram.com/511tactical_taipei/" target="_blank" rel="noopener" class="social-icon-btn ig" title="Instagram">
+          <i class="fab fa-instagram"></i>
+        </a>
+      </div>
     </div>
   </header>
 
-  <!-- ══════════════════════════════════
-       主要內容區（所有頁面都在這裡切換）
-  ══════════════════════════════════ -->
   <main id="app">
-    <!-- 讀取中提示 -->
     <div class="loading-screen" id="loading-screen">
       <div class="loading-spinner"></div>
       <p>載入中...</p>
     </div>
   </main>
 
-  <!-- ══════════════════════════════════
-       頁尾
-  ══════════════════════════════════ -->
   <footer class="site-footer">
     <div class="footer-inner">
-      <p class="footer-brand">5.11 TACTICAL TAIWAN</p>
+      <p class="footer-brand">5.11 Tactical Store Taipei</p>
+      
       <p class="footer-notice">此型錄僅供商品查詢，實際庫存請洽門市或 Facebook 粉專確認</p>
-      <a id="footer-fb-link" href="#" target="_blank" rel="noopener" class="footer-fb-btn">
-        📘 前往 Facebook 粉專
-      </a>
+      
+      <div class="footer-store-info">
+        <p>📍臺北市大安區忠孝東路四段181巷35弄13號1樓</p>
+        <p>📞02-2778-9800</p>
+      </div>
     </div>
   </footer>
 
-  <!-- ══════════════════════════════════
-       Modal 燈箱（商品大圖）
-  ══════════════════════════════════ -->
   <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="商品大圖">
     <button class="lightbox-close" id="lightbox-close" aria-label="關閉">✕</button>
     <button class="lightbox-prev" id="lightbox-prev" aria-label="上一張">&#8249;</button>
@@ -72,9 +65,6 @@
   </div>
   <div class="lightbox-overlay" id="lightbox-overlay"></div>
 
-  <!-- ══════════════════════════════════
-       載入 JS（先設定再載主程式）
-  ══════════════════════════════════ -->
   <script src="config.js"></script>
   <script src="script.js"></script>
 </body>
