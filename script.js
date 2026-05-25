@@ -299,10 +299,6 @@ const App = {
 
     const cards = grouped.map(p => {
       const imgSrc = p.variants[0]?.imgs[0] || '';
-      const dots   = p.variants.filter(v => v.color)
-        .map(v => { const c = parseColor(v.color); return `<span class="color-dot" style="background:${c.css}" title="${esc(c.name)}"></span>`; })
-        .join('');
-      const colorLabel = p.variants.filter(v => v.color).map(v => esc(parseColor(v.color).name)).join(' / ');
 
       return `
         <a class="product-card fade-in" href="#/product/${encodeURIComponent(p.model)}">
@@ -316,8 +312,7 @@ const App = {
           <div class="product-card-info">
             <div class="product-card-model">${esc(p.model)}</div>
             <div class="product-card-name">${esc(p.name)}</div>
-            ${dots ? `<div class="color-dots">${dots}</div>` : ''}
-            ${colorLabel ? `<div class="color-label">${colorLabel}</div>` : ''}
+
           </div>
         </a>`;
     }).join('');
@@ -410,7 +405,7 @@ const App = {
           <div class="divider"></div>
 
           <a class="btn-fb" href="${esc(CONFIG.FB_URL)}" target="_blank" rel="noopener">
-            📘 ${esc(CONFIG.FB_BUTTON_TEXT)}
+            ${esc(CONFIG.FB_BUTTON_TEXT)}
           </a>
         </div>`;
     };
