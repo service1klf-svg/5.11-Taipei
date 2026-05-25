@@ -348,22 +348,33 @@ const App = {
     ]);
 
     let activeColorIdx = 0;
-    let activeImg = product.variants[0]?.imgs[0] || '';
 
     const render = () => {
       const variant = product.variants[activeColorIdx] || product.variants[0];
       const imgs    = variant.imgs || [];
       window.lightboxImgs = imgs;
 
-      const mainImgHtml = activeImg
-        ? `<img src="${esc(activeImg)}" alt="${esc(product.name)}" onerror="this.style.opacity=0.2">`
-        : `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:64px;opacity:0.15">📦</div>`;
+      // 滑動器：每張圖一個 item
+      const sliderItems = imgs.map((url, i) => `
+        <div class="img-slider-item">
+          <img src="${esc(url)}"
+               alt="${esc(product.name)} 圖${i+1}"
+               loading="lazy"
+               onerror="this.style.opacity=0.15"
+               onclick="Lightbox.open(window.lightboxImgs,${i})" />
+        </div>`).join('');
 
-      const thumbs = imgs.map((url, i) => `
-        <img class="thumb-item ${url === activeImg ? 'active' : ''}"
-             src="${esc(url)}" alt="圖 ${i+1}" loading="lazy"
-             onclick="App.selectImg('${esc(url)}')"
-             onerror="this.style.display='none'" />`).join('');
+      const sliderHtml = imgs.length > 0
+        ? `<div class="img-slider" id="img-slider">
+            <div class="img-slider-track" id="img-slider-track">${sliderItems}</div>
+            ${imgs.length > 1 ? `
+              <button class="slider-btn slider-prev" id="slider-prev">&#8249;</button>
+              <button class="slider-btn slider-next" id="slider-next">&#8250;</button>
+              <div class="slider-dots">
+                ${imgs.map((_,i) => `<span class="slider-dot${i===0?' active':''}" data-idx="${i}"></span>`).join('')}
+              </div>` : ''}
+           </div>`
+        : `<div class="img-slider-empty">📦</div>`;
 
       const colorBtns = product.variants.map((v, i) => {
         const c = parseColor(v.color);
@@ -384,12 +395,11 @@ const App = {
         <div class="label">商品說明</div>
         <p class="description-text">${esc(product.description)}</p>` : '';
 
+      // 渲染 HTML 後初始化滑動器
+      const _imgs = imgs; // 給 init 用
       document.getElementById('detail-inner').innerHTML = `
         <div class="product-images">
-          <div class="main-img-wrap" onclick="Lightbox.open(window.lightboxImgs,0)">
-            ${mainImgHtml}
-          </div>
-          <div class="thumb-list">${thumbs}</div>
+          ${sliderHtml}
         </div>
 
         <div class="product-info">
@@ -408,6 +418,7 @@ const App = {
             ${esc(CONFIG.FB_BUTTON_TEXT)}
           </a>
         </div>`;
+      Slider.init(_imgs); // 每次切換顏色都重新初始化
     };
 
     this.$app.innerHTML = `
@@ -418,10 +429,8 @@ const App = {
 
     this.selectColor = (idx) => {
       activeColorIdx = idx;
-      activeImg = product.variants[idx]?.imgs[0] || '';
-      render();
+      render(); // render 後 Slider.init 會自動從第一張開始
     };
-    this.selectImg = (url) => { activeImg = url; render(); };
   },
 
   setBreadcrumb(items) {
@@ -437,6 +446,72 @@ const App = {
           : `<a href="${esc(item.href)}">${esc(item.label)}</a>`);
       })
     ].join('');
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  Slider（商品詳細頁圖片滑動器）
+//  支援：左右箭頭按鈕、指示點、手機觸控滑動、點圖片開燈箱
+// ═══════════════════════════════════════════════════════════════
+const Slider = {
+  imgs: [],
+  idx:  0,
+
+  /** 初始化，每次切換顏色或進入商品頁都呼叫 */
+  init(imgs) {
+    this.imgs = imgs || [];
+    this.idx  = 0;
+    this._update();
+    this._attachEvents();
+  },
+
+  /** 往前 / 後移動 */
+  move(dir) {
+    if (!this.imgs.length) return;
+    this.idx = (this.idx + dir + this.imgs.length) % this.imgs.length;
+    this._update();
+  },
+
+  /** 跳到指定張 */
+  goTo(idx) {
+    this.idx = idx;
+    this._update();
+  },
+
+  /** 更新 track 位置與指示點狀態 */
+  _update() {
+    const track = document.getElementById('img-slider-track');
+    if (!track) return;
+    track.style.transform = `translateX(-${this.idx * 100}%)`;
+    document.querySelectorAll('.slider-dot').forEach((dot, i) => {
+      dot.classList.toggle('active', i === this.idx);
+    });
+  },
+
+  /** 綁定按鈕、點擊指示點、觸控滑動 */
+  _attachEvents() {
+    // 左右按鈕
+    const prev  = document.getElementById('slider-prev');
+    const next  = document.getElementById('slider-next');
+    const track = document.getElementById('img-slider-track');
+    if (prev) prev.onclick = () => this.move(-1);
+    if (next) next.onclick = () => this.move(1);
+
+    // 指示點
+    document.querySelectorAll('.slider-dot').forEach((dot, i) => {
+      dot.onclick = () => this.goTo(i);
+    });
+
+    // 觸控滑動（手機）
+    if (!track) return;
+    let startX = 0;
+    track.addEventListener('touchstart', e => {
+      startX = e.touches[0].clientX;
+    }, { passive: true });
+    track.addEventListener('touchend', e => {
+      const diff = startX - e.changedTouches[0].clientX;
+      if (Math.abs(diff) > 40) this.move(diff > 0 ? 1 : -1);
+    }, { passive: true });
   }
 };
 
