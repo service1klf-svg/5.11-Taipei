@@ -126,7 +126,7 @@ button { cursor: pointer; font-family: var(--font-body); border: none; }
 .sub-card-name { font-family: var(--font-heading); font-size: 20px; font-weight: 700; letter-spacing: 1px; }
 .sub-card-count { font-size: 11px; color: var(--color-text-dim); background: var(--color-bg3); padding: 2px 8px; border-radius: 20px; }
 
-.product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 2px; margin-top: 8px; }
+.product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 2px; margin-top: 8px; }
 .product-card { display: block; background: var(--color-bg2); cursor: pointer; text-decoration: none; transition: background 0.2s, transform 0.2s; overflow: hidden; border: 1px solid transparent; }
 .product-card:hover { background: var(--color-bg3); border-color: var(--color-border); transform: translateY(-2px); box-shadow: var(--shadow); }
 .product-card-img-wrap { position: relative; padding-bottom: 100%; overflow: hidden; background: #1e1e20; }
@@ -148,7 +148,7 @@ button { cursor: pointer; font-family: var(--font-body); border: none; }
 }
 
 /* ─── 商品詳細頁 ────────────────────────────────────────────── */
-.product-detail { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start; }
+.product-detail { display: grid; grid-template-columns: 3fr 5fr; gap: 40px; align-items: start; }
 @media (max-width: 768px) { .product-detail { grid-template-columns: 1fr; gap: 24px; } }
 .main-img-wrap { position: relative; width: 100%; padding-bottom: 100%; background: #1a1a1b; overflow: hidden; cursor: zoom-in; border: 1px solid var(--color-border); }
 .main-img-wrap img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease; }
@@ -177,8 +177,30 @@ button { cursor: pointer; font-family: var(--font-body); border: none; }
   flex-shrink: 0;
 }
 
-.btn-fb { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 16px 24px; background: var(--color-orange); color: white; font-family: var(--font-heading); font-size: 18px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; text-decoration: none; transition: background 0.2s, transform 0.15s; border-radius: var(--radius); margin-top: 24px; }
-.btn-fb:hover { background: var(--color-orange-dk); transform: translateY(-2px); }
+.btn-fb {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: auto;                          /* 寬度隨文字，不撐滿 */
+  padding: 13px 28px;
+  background: transparent;             /* 預設：無底色 */
+  color: var(--color-orange);          /* 預設：橘字 */
+  border: 2px solid var(--color-orange); /* 橘色外框 */
+  font-family: var(--font-heading);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  text-decoration: none;
+  border-radius: var(--radius);
+  margin-top: 24px;
+  transition: background 0.2s, color 0.2s;
+}
+.btn-fb:hover {
+  background: var(--color-orange);     /* hover：橘底 */
+  color: #ffffff;                       /* hover：白字 */
+}
 
 .back-btn { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-heading); font-size: 13px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--color-text-muted); cursor: pointer; padding: 8px 0; transition: color 0.15s; background: none; border: none; margin-bottom: 24px; }
 .back-btn:hover { color: var(--color-orange); }
