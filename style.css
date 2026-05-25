@@ -221,6 +221,113 @@ button { cursor: pointer; font-family: var(--font-body); border: none; }
 .footer-disclaimer-layer { background: #000000; padding: 16px 20px; text-align: center; width: 100%; }
 .disclaimer-text { max-width: var(--max-w); margin: 0 auto; font-size: 16px; font-weight: 700; color: #FFFFFF; line-height: 1.4; letter-spacing: 0.5px; }
 
+
+/* ─── 商品詳細頁 — 圖片滑動器 ──────────────────────────────── */
+.img-slider {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: #1a1a1b;
+  border: 1px solid var(--color-border);
+  cursor: zoom-in;
+  /* 維持 1:1 正方形 */
+  aspect-ratio: 1 / 1;
+}
+
+/* 滑動軌道：橫向排列所有圖片 */
+.img-slider-track {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+
+/* 每張圖片的格子 */
+.img-slider-item {
+  flex-shrink: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+.img-slider-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.3s ease;
+  pointer-events: none; /* 讓點擊透過到 slider 容器 */
+}
+/* 直接在 item 上點擊才觸發燈箱，所以要把 img pointer-events 開回來 */
+.img-slider-item img { pointer-events: auto; }
+
+/* 左右箭頭按鈕 */
+.slider-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  width: 36px;
+  height: 56px;
+  background: rgba(0, 0, 0, 0.45);
+  border: none;
+  color: #fff;
+  font-size: 30px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;                          /* 預設隱藏 */
+  transition: opacity 0.2s, background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.img-slider:hover .slider-btn { opacity: 1; }   /* hover 時顯示 */
+.slider-btn:hover { background: rgba(0, 0, 0, 0.72); }
+.slider-prev { left: 0; border-radius: 0 4px 4px 0; }
+.slider-next { right: 0; border-radius: 4px 0 0 4px; }
+
+/* 指示點 */
+.slider-dots {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  z-index: 10;
+}
+.slider-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.38);
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+.slider-dot.active {
+  background: var(--color-orange);
+  transform: scale(1.35);
+}
+.slider-dot:hover:not(.active) { background: rgba(255, 255, 255, 0.7); }
+
+/* 無圖片時的佔位 */
+.img-slider-empty {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background: #1a1a1b;
+  border: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 56px;
+  opacity: 0.15;
+}
+
+/* 手機上箭頭始終顯示（不需要 hover） */
+@media (max-width: 768px) {
+  .slider-btn { opacity: 0.7; }
+}
+
 /* ─── Lightbox 燈箱 ─────────────────────────────────────────── */
 .lightbox-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 200; }
 .lightbox-overlay.active { display: block; }
