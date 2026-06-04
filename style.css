@@ -181,7 +181,7 @@ button { cursor: pointer; font-family: var(--font-body); border: none; }
 .description-text,
 .material-text {
   font-size: 14px;
-  color: #F5F5F5;
+  color: #E8E8E8;
   line-height: 1.8;
   white-space: pre-line;   /* ← 這行讓換行符號 \n 實際顯示為換行 */
 }
