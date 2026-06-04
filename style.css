@@ -177,6 +177,15 @@ button { cursor: pointer; font-family: var(--font-body); border: none; }
   flex-shrink: 0;
 }
 
+/* 商品說明 / 材質：white-space: pre-line 讓 Google Sheet 的 Alt+Enter 換行生效 */
+.description-text,
+.material-text {
+  font-size: 14px;
+  color: var(--color-text-muted);
+  line-height: 1.8;
+  white-space: pre-line;   /* ← 這行讓換行符號 \n 實際顯示為換行 */
+}
+
 .btn-fb {
   display: inline-flex;
   align-items: center;
