@@ -130,7 +130,7 @@ button { cursor: pointer; font-family: var(--font-body); border: none; }
 .product-card { display: block; background: var(--color-bg2); cursor: pointer; text-decoration: none; transition: background 0.2s, transform 0.2s; overflow: hidden; border: 1px solid transparent; }
 .product-card:hover { background: var(--color-bg3); border-color: var(--color-border); transform: translateY(-2px); box-shadow: var(--shadow); }
 .product-card-img-wrap { position: relative; padding-bottom: 100%; overflow: hidden; background: #1e1e20; }
-.product-card-img-wrap img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; transition: transform 0.35s ease; }
+.product-card-img-wrap img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 0.35s ease; }
 .product-card:hover .product-card-img-wrap img { transform: scale(1.06); }
 .product-card-info { padding: 14px 16px 16px; }
 .product-card-model { font-family: var(--font-heading); font-size: 11px; font-weight: 600; letter-spacing: 2px; color: var(--color-orange); text-transform: uppercase; margin-bottom: 4px; }
