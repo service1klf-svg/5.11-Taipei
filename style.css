@@ -126,7 +126,7 @@ button { cursor: pointer; font-family: var(--font-body); border: none; }
 .sub-card-name { font-family: var(--font-heading); font-size: 20px; font-weight: 700; letter-spacing: 1px; }
 .sub-card-count { font-size: 11px; color: var(--color-text-dim); background: var(--color-bg3); padding: 2px 8px; border-radius: 20px; }
 
-.product-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; margin: 8px auto 0; max-width: 960px; }
+.product-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; margin: 8px auto 0; max-width: 960px; }
 .product-card { display: block; background: var(--color-bg2); cursor: pointer; text-decoration: none; transition: background 0.2s, transform 0.2s; overflow: hidden; border: 1px solid transparent; }
 .product-card:hover { background: var(--color-bg3); border-color: var(--color-border); transform: translateY(-2px); box-shadow: var(--shadow); }
 .product-card-img-wrap { position: relative; padding-bottom: 100%; overflow: hidden; background: #1e1e20; }
