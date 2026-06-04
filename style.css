@@ -12,7 +12,7 @@
   --color-orange-dk:  #d13b16;   
   --color-orange-lt:  #ff6442;   
   
-  --color-text:       #FFFFFF;   
+  --color-text:       #e8e9ea;   
   --color-text-muted: #8a8c8f;   
   --color-text-dim:   #5a5c5f;   
   --color-danger:     #c0392b;   
@@ -181,7 +181,7 @@ button { cursor: pointer; font-family: var(--font-body); border: none; }
 .description-text,
 .material-text {
   font-size: 14px;
-  color: var(--color-text);
+  color: #ffffff;
   line-height: 1.8;
   white-space: pre-line;   /* ← 這行讓換行符號 \n 實際顯示為換行 */
 }
