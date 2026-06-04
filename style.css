@@ -262,13 +262,10 @@ button { cursor: pointer; font-family: var(--font-body); border: none; }
 .img-slider-item img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;  /* contain = 完整顯示不裁切，cover = 填滿但裁切 */
   display: block;
   transition: transform 0.3s ease;
-  pointer-events: none; /* 讓點擊透過到 slider 容器 */
 }
-/* 直接在 item 上點擊才觸發燈箱，所以要把 img pointer-events 開回來 */
-.img-slider-item img { pointer-events: auto; }
 
 /* 左右箭頭按鈕 */
 .slider-btn {
