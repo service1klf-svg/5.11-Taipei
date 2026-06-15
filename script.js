@@ -23,7 +23,7 @@ function parseGViz(raw) {
     const obj = {};
     cols.forEach((col, i) => {
       const cell = row.c?.[i];
-      obj[col] = (cell && cell.v != null) ? String(cell.v).trim() : '';
+      obj[col] = (cell && cell.v != null) ? String(cell.v).trim() : (cell && cell.f != null ? String(cell.f).trim() : "");
     });
     return obj;
   }).filter(r => r.model || r.name);
