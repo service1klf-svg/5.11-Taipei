@@ -15,27 +15,48 @@ let cachedStructure = null;   // 分類結構 { '上衣': ['襯衫','T恤',...],
 //  資料讀取
 // ═══════════════════════════════════════════════════════════════
 
-/** 解析 Google Sheets GViz JSON 回傳格式 */
-function parseGViz(raw) {
-  const json = JSON.parse(raw.replace(/^[^(]+\(/, '').replace(/\);?\s*$/, ''));
-  const cols = json.table.cols.map(c => c.label || c.id);
-  return (json.table.rows || []).map(row => {
+/**
+ * CSV 解析：處理引號、逗號、換行等標準 CSV 格式
+ * 改用 CSV 而非 GViz JSON，避免型別推斷造成英數混合型號被略過
+ */
+function parseCSVLine(line) {
+  const fields = [];
+  let field = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') { field += '"'; i++; }
+      else inQuotes = !inQuotes;
+    } else if (ch === ',' && !inQuotes) {
+      fields.push(field); field = '';
+    } else {
+      field += ch;
+    }
+  }
+  fields.push(field);
+  return fields;
+}
+
+function parseCSV(text) {
+  const lines = text.split('\n').filter(l => l.trim());
+  if (lines.length < 2) return [];
+  const headers = parseCSVLine(lines[0]).map(h => h.trim());
+  return lines.slice(1).map(line => {
+    const values = parseCSVLine(line);
     const obj = {};
-    cols.forEach((col, i) => {
-      const cell = row.c?.[i];
-      obj[col] = (cell && cell.v != null) ? String(cell.v).trim() : (cell && cell.f != null ? String(cell.f).trim() : "");
-    });
+    headers.forEach((h, i) => { obj[h] = (values[i] || '').trim(); });
     return obj;
   }).filter(r => r.model || r.name);
 }
 
-/** 抓商品資料（有快取就直接用） */
+/** 抓商品資料（改用 CSV 格式，完全無型別推斷問題） */
 async function loadProducts() {
   if (cachedProducts) return cachedProducts;
-  const url = `https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(CONFIG.SHEET_PRODUCTS)}`;
+  const url = `https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(CONFIG.SHEET_PRODUCTS)}`;
   const resp = await fetch(url);
   if (!resp.ok) throw new Error(`無法讀取工作表（HTTP ${resp.status}）`);
-  cachedProducts = parseGViz(await resp.text());
+  cachedProducts = parseCSV(await resp.text());
   return cachedProducts;
 }
 
