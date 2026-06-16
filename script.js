@@ -39,15 +39,57 @@ function parseCSVLine(line) {
 }
 
 function parseCSV(text) {
-  const lines = text.split('\n').filter(l => l.trim());
-  if (lines.length < 2) return [];
-  const headers = parseCSVLine(lines[0]).map(h => h.trim());
-  return lines.slice(1).map(line => {
-    const values = parseCSVLine(line);
-    const obj = {};
-    headers.forEach((h, i) => { obj[h] = (values[i] || '').trim(); });
-    return obj;
-  }).filter(r => r.model || r.name);
+  // ★ 修正：逐字元解析，正確處理引號內含換行的多行欄位（如商品說明）
+  text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+  const records = [];
+  let i = 0;
+  let headers = null;
+
+  while (i < text.length) {
+    const fields = [];
+
+    // 解析一筆記錄（一列，但引號內可跨行）
+    while (i < text.length) {
+      let field = '';
+
+      if (text[i] === '"') {
+        // 引號欄位：完整讀到配對的結尾引號為止（中間換行也保留）
+        i++;
+        while (i < text.length) {
+          if (text[i] === '"') {
+            if (text[i + 1] === '"') { field += '"'; i += 2; } // 雙引號跳脫
+            else { i++; break; }                                 // 結尾引號
+          } else {
+            field += text[i]; i++;
+          }
+        }
+      } else {
+        // 無引號欄位：讀到逗號或換行為止
+        while (i < text.length && text[i] !== ',' && text[i] !== '\n') {
+          field += text[i]; i++;
+        }
+      }
+
+      fields.push(field);
+
+      if (i < text.length && text[i] === ',') { i++; }  // 跳過欄位分隔逗號
+      else { break; }                                     // 行尾或檔案結束
+    }
+
+    if (i < text.length && text[i] === '\n') i++;  // 跳過列尾換行
+
+    // 第一列為標題
+    if (!headers) {
+      headers = fields.map(h => h.trim());
+    } else if (fields.some(f => f.trim())) {
+      const obj = {};
+      headers.forEach((h, j) => { obj[h] = (fields[j] || '').trim(); });
+      if (obj.model || obj.name) records.push(obj);
+    }
+  }
+
+  return records;
 }
 
 /** 抓商品資料（改用 CSV 格式，完全無型別推斷問題） */
@@ -414,7 +456,7 @@ const App = {
       const descHtml = product.description ? `
         <div class="divider"></div>
         <div class="label">商品說明</div>
-        <p class="description-text">${esc(product.description)}</p>` : '';
+        <p class="description-text">${esc(product.description).replace(/\n/g, '<br>')}</p>` : '';
 
       // 渲染 HTML 後初始化滑動器
       const _imgs = imgs; // 給 init 用
